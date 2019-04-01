@@ -1,6 +1,8 @@
-package org.jetbrains.plugins.scala.codeInspection.dfa.cfg
+package org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg
 
-class JumpIfNot private[cfg](override val targetLabel: Label) extends JumpingInstruction {
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.AbstractInstructionVisitor
+
+class JumpIfNot private[controlFlow](override val targetLabel: Label) extends JumpingInstruction {
 
   override def popCount: Int = 1
   override def asmString: String = s"jumpIfNot $targetLabel"

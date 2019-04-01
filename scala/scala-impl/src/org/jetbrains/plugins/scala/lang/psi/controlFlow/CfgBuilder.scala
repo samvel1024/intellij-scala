@@ -1,15 +1,16 @@
-package org.jetbrains.plugins.scala.codeInspection.dfa.cfg
+package org.jetbrains.plugins.scala.lang.psi.controlFlow
 
-import org.jetbrains.plugins.scala.codeInspection.dfa.cfg.CfgBuilder.BuildLabel
-import org.jetbrains.plugins.scala.codeInspection.dfa.{DfEntity, DfValue}
+import org.jetbrains.plugins.scala.dfa.{DfEntity, DfValue}
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder.BuildLabel
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg._
 import org.jetbrains.plugins.scala.project.ProjectContext
 
 import scala.collection.mutable
 
 class CfgBuilder(implicit val projectContext: ProjectContext) {
-  private val instructions = mutable.Buffer.empty[Instruction]
+  private val instructions = mutable.Buffer.empty[cfg.Instruction]
   private val unboundLabels = mutable.Set.empty[BuildLabel]
-  private val stackSizeAtLabel = mutable.Map.empty[Label, Int]
+  private val stackSizeAtLabel = mutable.Map.empty[cfg.Label, Int]
   private var numLabelsToNextInstr = 0
   private var curStackSize = 0
 
@@ -18,7 +19,7 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
   private def hasControlFlowFromPreviousInstruction: Boolean =
     instructions.lastOption.forall(_.info.hasControlFlowAfter)
 
-  private def newInstr(instr: Instruction): Instruction = {
+  private def newInstr(instr: cfg.Instruction): cfg.Instruction = {
     instr.index = indexOfNextInstr
 
     if (instr.popCount > curStackSize)
@@ -31,7 +32,7 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
   }
 
   private def newInstr(jumpingInstr: JumpingInstruction): JumpingInstruction = {
-    newInstr(jumpingInstr: Instruction)
+    newInstr(jumpingInstr: cfg.Instruction)
     use(jumpingInstr.targetLabel)
     jumpingInstr
   }

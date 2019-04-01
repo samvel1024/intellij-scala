@@ -1,6 +1,8 @@
-package org.jetbrains.plugins.scala.codeInspection.dfa.cfg
+package org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg
 
-class PushThis private[cfg] extends Instruction {
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.AbstractInstructionVisitor
+
+class PushThis private[controlFlow] extends Instruction {
   override def pushCount: Int = 1
   override def asmString: String = s"pushThis"
   override def info: Instruction.Info = PushThis

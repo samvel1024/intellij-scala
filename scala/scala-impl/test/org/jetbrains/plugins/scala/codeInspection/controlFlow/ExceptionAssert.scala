@@ -1,9 +1,8 @@
-package org.jetbrains.plugins.scala.codeInspection.dfa
+package org.jetbrains.plugins.scala.codeInspection.controlFlow
 
 import org.junit.ComparisonFailure
 
 import scala.reflect.ClassTag
-import scala.reflect.runtime.universe._
 
 trait ExceptionAssert {
 
@@ -39,11 +38,11 @@ trait ExceptionAssert {
 
   }
 
-  def assertExceptionMessage[E <: Throwable: TypeTag](expectedMessage: String)
+  def assertExceptionMessage[E <: Throwable](expectedMessage: String)
                                                      (code: => Unit)
                                                      (implicit classTag: ClassTag[E]): Unit =
     assertExceptionMessage(Some(expectedMessage))(code)
 
-  def assertException[E <: Throwable: TypeTag](code: => Unit)(implicit classTag: ClassTag[E]): Unit =
+  def assertException[E <: Throwable](code: => Unit)(implicit classTag: ClassTag[E]): Unit =
     assertExceptionMessage(None)(code)
 }

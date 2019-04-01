@@ -1,5 +1,7 @@
-package org.jetbrains.plugins.scala.codeInspection.dfa.cfg
+package org.jetbrains.plugins.scala.codeInspection.controlFlow
 
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg._
 import scala.reflect.runtime.universe._
 
 object InstructionLists {
@@ -11,7 +13,7 @@ object InstructionLists {
     bundle[Push](Push),
     bundle[Pop](Pop),
     bundle[Dup](Dup),
-    bundle[Assign](Assign),
+    bundle[cfg.Assign](cfg.Assign),
     bundle[Jump](Jump),
     bundle[Ret](Ret)
   )

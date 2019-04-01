@@ -1,9 +1,11 @@
-package org.jetbrains.plugins.scala.codeInspection.dfa.cfg
+package org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg
+
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.AbstractInstructionVisitor
 
 /**
  * Pops two entity A and entity B from the stack and assigns B to A
  */
-class Assign private[cfg] extends Instruction {
+class Assign private[controlFlow] extends Instruction {
 
   override def popCount: Int = 2
   override def pushCount: Int = 1

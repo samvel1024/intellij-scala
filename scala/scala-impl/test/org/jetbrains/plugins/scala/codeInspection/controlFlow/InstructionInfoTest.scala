@@ -1,6 +1,7 @@
-package org.jetbrains.plugins.scala.codeInspection.dfa.cfg
+package org.jetbrains.plugins.scala.codeInspection.controlFlow
 
 import junit.framework.TestCase
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.JumpingInstruction
 
 import scala.reflect.runtime.universe._
 

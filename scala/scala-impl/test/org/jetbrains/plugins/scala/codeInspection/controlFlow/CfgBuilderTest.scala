@@ -1,7 +1,7 @@
-package org.jetbrains.plugins.scala.codeInspection.dfa.cfg
+package org.jetbrains.plugins.scala.codeInspection.controlFlow
 
 import org.jetbrains.plugins.scala.base.SimpleTestCase
-import org.jetbrains.plugins.scala.codeInspection.dfa.ExceptionAssert
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
 
 class CfgBuilderTest extends SimpleTestCase with ExceptionAssert {
 

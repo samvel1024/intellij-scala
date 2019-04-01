@@ -1,4 +1,4 @@
-package org.jetbrains.plugins.scala.codeInspection.dfa.cfg
+package org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg
 
 abstract class JumpingInstruction extends Instruction {
   def targetLabel: Label

@@ -1,4 +1,4 @@
-package org.jetbrains.plugins.scala.codeInspection.dfa.cfg.transformers.scala
+package org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.transformers.scala
 
 import org.jetbrains.plugins.scala.lang.psi.api.base.patterns.{ScParenthesisedPattern, ScPattern, ScWildcardPattern}
 

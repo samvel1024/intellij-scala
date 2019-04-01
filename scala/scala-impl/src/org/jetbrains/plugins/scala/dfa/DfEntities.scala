@@ -1,4 +1,4 @@
-package org.jetbrains.plugins.scala.codeInspection.dfa
+package org.jetbrains.plugins.scala.dfa
 
 import org.jetbrains.plugins.scala.lang.psi.types.ScType
 import org.jetbrains.plugins.scala.project.ProjectContext

@@ -1,13 +1,13 @@
-package org.jetbrains.plugins.scala.codeInspection.dfa.cfg.transformers.scala
+package org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.transformers.scala
 
 import com.intellij.psi.PsiElement
-import org.jetbrains.plugins.scala.codeInspection.dfa.cfg.{CfgBuilder, ControlFlowGraph}
 import org.jetbrains.plugins.scala.lang.psi.api.base.ScPatternList
 import org.jetbrains.plugins.scala.lang.psi.api.expr.{ScAssignment, ScBlockStatement, ScExpression}
 import org.jetbrains.plugins.scala.lang.psi.api.statements.{ScPatternDefinition, ScVariableDefinition}
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.templates.ScExtendsBlock
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.ScClass
 import org.jetbrains.plugins.scala.lang.psi.api.{ConstructorInvocationLike, ScalaElementVisitor}
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.{CfgBuilder, ControlFlowGraph}
 import org.jetbrains.plugins.scala.project.ProjectContext
 
 class ScalaCfgTransformer(implicit val projectContext: ProjectContext)
