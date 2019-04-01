@@ -1,18 +1,20 @@
 package org.jetbrains.plugins.scala.codeInspection.dfa.cfg.transformers.scala
 
 import com.intellij.psi.PsiElement
+import org.jetbrains.plugins.scala.codeInspection.dfa.DfValue
 import org.jetbrains.plugins.scala.codeInspection.dfa.cfg.CfgBuilder
 import org.jetbrains.plugins.scala.lang.psi.api.ScalaElementVisitor
-import org.jetbrains.plugins.scala.lang.psi.api.expr.{ScBlockExpr, ScBlockStatement, ScExpression}
+import org.jetbrains.plugins.scala.lang.psi.api.base.{ScIntLiteral, ScLiteral, ScNullLiteral}
+import org.jetbrains.plugins.scala.lang.psi.api.expr._
 
 /**
  * Used
  */
-class ScalaExpressionTransformer(val scalaCfgTransformer: ScalaCfgTransformer, val builder: CfgBuilder)
-    extends ScalaElementVisitor{
+class ScalaExpressionTransformer(val scalaCfgTransformer: ScalaCfgTransformer, override val builder: CfgBuilder, val needResult: Boolean)
+    extends ScalaElementVisitor with Transformer with CallExprTransformer {
 
-  def buildExpression(expr: ScExpression): Unit =
-    scalaCfgTransformer.buildExpression(expr)
+  override def buildExpression(expr: ScExpression, needResult: Boolean = true): Unit =
+    scalaCfgTransformer.buildExpression(expr, needResult)
 
   def buildStatements(statements: Seq[ScBlockStatement], expectResult: Boolean): Unit =
     scalaCfgTransformer.buildStatements(statements, expectResult)
@@ -30,6 +32,71 @@ class ScalaExpressionTransformer(val scalaCfgTransformer: ScalaCfgTransformer, v
         ???
       case None =>
         buildStatements(block.statements, expectResult = true)
+    }
+  }
+
+  override def visitIfStatement(stmt: ScIf): Unit = {
+    val ScIf(condition, thenExpression, elseExpression) = stmt
+
+    val hasElse = needResult || elseExpression.isDefined
+    val endLabel = builder.createLabel("endIf")
+    val elseLabel = if (hasElse) builder.createLabel("else") else endLabel
+
+    buildExpressionOrPushAny(condition)
+    builder.jumpIfFalse(elseLabel)
+    buildExpressionOrPushAnyIfNeeded(thenExpression, needResult)
+    if (hasElse) {
+      builder.jumpTo(endLabel)
+      builder.bindLabel(elseLabel)
+      buildExpressionOrPushUnitIfNeeded(elseExpression, needResult)
+    }
+    builder.bindLabel(endLabel)
+  }
+
+  override def visitWhileStatement(ws: ScWhile): Unit = {
+    val ScWhile(condition, body) = ws
+
+    val loopEntry = builder.createLabel("whileLoop")
+    val loopExit = builder.createLabel("whileExit")
+
+    builder.bindLabel(loopEntry)
+    buildExpressionOrPushAny(condition)
+    builder.jumpIfFalse(loopExit)
+    buildExpressionWithoutResult(body)
+    builder.jumpTo(loopEntry)
+    builder.bindLabel(loopExit)
+
+    if (needResult) {
+      builder.pushUnit()
+    }
+  }
+
+  override def visitReturnStatement(ret: ScReturn): Unit = {
+    buildExpressionOrPushUnit(ret.expr)
+    builder.ret()
+  }
+
+  override def visitThisReference(t: ScThisReference): Unit = {
+    builder.pushThis()
+    discardIfNotNeeded()
+  }
+
+  override def visitLiteral(literal: ScLiteral): Unit = {
+    literal match {
+      case ScNullLiteral() =>
+        builder.pushNull()
+      case ScIntLiteral(value) =>
+        builder.push(DfValue.int(value))
+
+      case _ =>
+        ???
+    }
+    discardIfNotNeeded()
+  }
+
+  private def discardIfNotNeeded(): Unit = {
+    if (!needResult) {
+      builder.pop()
     }
   }
 }

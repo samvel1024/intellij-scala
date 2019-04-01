@@ -12,6 +12,7 @@ class Dup private[cfg](val times: Int) extends Instruction {
   override def pushCount: Int = times + 1
   override def asmString: String = "dup" + (if (times > 1) s" ${times}x" else "")
   override def info: Instruction.Info = Dup
+  override def accept(visitor: AbstractInstructionVisitor): Unit = visitor.visitDup(this)
 }
 
 object Dup extends Instruction.Info(

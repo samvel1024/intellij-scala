@@ -33,11 +33,26 @@ class CfgBuilderTest extends SimpleTestCase with ExceptionAssert {
 
     val labelFromBuilderA = builderA.createLabel("builderA")
 
-    assertExceptionMessage[IllegalArgumentException]("Label .LbuilderA[<unbound>] belongs to another builder") {
+    assertExceptionMessage[IllegalArgumentException](s"Label $labelFromBuilderA belongs to another builder") {
       builderB.bindLabel(labelFromBuilderA)
     }
   }
 
+
+  def test_UnboundLabel(): Unit = {
+    val builder = new CfgBuilder
+
+    val label = builder.createLabel("notUsed")
+
+    builder
+      .jumpTo(label)
+      .pushAny()
+      .ret()
+
+    assertExceptionMessage[IllegalStateException](s"Cannot build cfg with 1 unbound labels: $label") {
+      builder.build()
+    }
+  }
 
   def test_UnusedLabel(): Unit = {
     val builder = new CfgBuilder
@@ -48,10 +63,7 @@ class CfgBuilderTest extends SimpleTestCase with ExceptionAssert {
     builder
       .bindLabel(label)
       .jumpTo(label)
-
-    assertExceptionMessage[IllegalStateException]("Cannot build cfg with 1 unbound labels: .LnotUsed[<unbound>]") {
-      builder.build()
-    }
+      .build()
   }
 
   def test_LabelAfterEnd(): Unit = {

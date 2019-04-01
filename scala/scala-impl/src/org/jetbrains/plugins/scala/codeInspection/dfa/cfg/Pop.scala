@@ -7,6 +7,7 @@ class Pop private[cfg] extends Instruction {
   override def popCount: Int = 1
   override def asmString: String = "pop"
   override def info: Instruction.Info = Pop
+  override def accept(visitor: AbstractInstructionVisitor): Unit = visitor.visitPop(this)
 }
 
 object Pop extends Instruction.Info(name = "Pop")

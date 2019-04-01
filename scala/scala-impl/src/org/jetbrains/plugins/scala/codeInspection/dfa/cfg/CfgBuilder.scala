@@ -1,7 +1,7 @@
 package org.jetbrains.plugins.scala.codeInspection.dfa.cfg
 
 import org.jetbrains.plugins.scala.codeInspection.dfa.cfg.CfgBuilder.BuildLabel
-import org.jetbrains.plugins.scala.codeInspection.dfa.values.{DfEntity, DfValue}
+import org.jetbrains.plugins.scala.codeInspection.dfa.{DfEntity, DfValue}
 import org.jetbrains.plugins.scala.project.ProjectContext
 
 import scala.collection.mutable
@@ -44,14 +44,14 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
     }
   }
 
-  def jumpTo(target: BuildLabel): this.type = {
-    newInstr(new Jump(target))
-    this
-  }
-
   def pushAny(): this.type = push(DfValue.any)
   def pushUnit(): this.type = push(DfValue.unit)
   def pushNull(): this.type = push(???)
+
+  def pushThis(): this.type = {
+    newInstr(new PushThis)
+    this
+  }
 
   def push(value: DfEntity): this.type = {
     newInstr(new Push(value))
@@ -83,9 +83,21 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
     this
   }
 
+
+  def jumpTo(target: BuildLabel): this.type = {
+    newInstr(new Jump(target))
+    this
+  }
+
+  def jumpIfFalse(target: BuildLabel): this.type = {
+    newInstr(new JumpIfNot(target))
+    this
+  }
+
   def bindLabel(label: BuildLabel): this.type = {
     if (label.isBound)
       throw new IllegalArgumentException(s"Cannot bind bound label $label")
+
     if (!unboundLabels.contains(label))
       throw new IllegalArgumentException(s"Label $label belongs to another builder")
 
@@ -107,8 +119,9 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
   }
 
   def build(): ControlFlowGraph = {
-    if (unboundLabels.nonEmpty) {
-      throw new IllegalStateException(s"Cannot build cfg with ${unboundLabels.size} unbound labels: ${unboundLabels.mkString(", ")}")
+    val usedUnbound = stackSizeAtLabel.keySet & unboundLabels.toSet[Label]
+    if (usedUnbound.nonEmpty) {
+      throw new IllegalStateException(s"Cannot build cfg with ${usedUnbound.size} unbound labels: ${usedUnbound.mkString(", ")}")
     }
 
     if (numLabelsToNextInstr > 0) {

@@ -29,6 +29,8 @@ abstract class Instruction {
   def asmString: String
   def info: Instruction.Info
 
+  def accept(visitor: AbstractInstructionVisitor): Unit
+
   override def toString: String = s"$index: $asmString"
 }
 

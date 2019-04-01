@@ -9,6 +9,7 @@ class Jump private[cfg](override val targetLabel: Label) extends JumpingInstruct
 
   override def asmString: String = s"jump $targetLabel"
   override def info: Instruction.Info = Jump
+  override def accept(visitor: AbstractInstructionVisitor): Unit = visitor.visitJump(this)
 }
 
 object Jump extends Instruction.Info(

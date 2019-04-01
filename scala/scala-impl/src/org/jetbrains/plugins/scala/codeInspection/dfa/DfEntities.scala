@@ -1,4 +1,4 @@
-package org.jetbrains.plugins.scala.codeInspection.dfa.values
+package org.jetbrains.plugins.scala.codeInspection.dfa
 
 import org.jetbrains.plugins.scala.lang.psi.types.ScType
 import org.jetbrains.plugins.scala.project.ProjectContext
@@ -35,12 +35,14 @@ class DfAbstractValue(upperBound: ScType) extends DfValue {
 
 sealed abstract class DfConcreteValue extends DfValue
 
-case object DfUnit extends DfConcreteValue
-
 class DfConcreteAnyRef extends DfConcreteValue
 
 sealed abstract class DfConcreteAnyVal extends DfValue {
   def value: AnyVal
+}
+
+case object DfUnit extends DfConcreteAnyVal {
+  def value: Unit = ()
 }
 
 sealed abstract class DfConcreteBoolean extends DfConcreteAnyVal {

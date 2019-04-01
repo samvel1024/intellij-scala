@@ -8,6 +8,7 @@ class Ret private[cfg] extends Instruction {
   override def popCount: Int = 1
   override def asmString: String = "ret"
   override def info: Instruction.Info = Ret
+  override def accept(visitor: AbstractInstructionVisitor): Unit = visitor.visitRet(this)
 }
 
 object Ret extends Instruction.Info(

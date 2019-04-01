@@ -11,13 +11,12 @@ import org.jetbrains.plugins.scala.lang.psi.api.{ConstructorInvocationLike, Scal
 import org.jetbrains.plugins.scala.project.ProjectContext
 
 class ScalaCfgTransformer(implicit val projectContext: ProjectContext)
-    extends ScalaElementVisitor with CallExprTransformer {
+    extends ScalaElementVisitor with Transformer with CallExprTransformer with PatternTransformer {
 
-  private val builder = new CfgBuilder
-  private val expressionTransformer = new ScalaExpressionTransformer(this, builder)
+  override val builder = new CfgBuilder
 
-  def buildExpression(expr: ScExpression): Unit = {
-    expr.accept(expressionTransformer)
+  override def buildExpression(expr: ScExpression, needResult: Boolean): Unit = {
+    expr.accept(new ScalaExpressionTransformer(this, builder, needResult))
   }
 
   // Build the statements.
@@ -33,7 +32,7 @@ class ScalaCfgTransformer(implicit val projectContext: ProjectContext)
     for ((stmt, idx) <- stmts.zipWithIndex) {
       val isLast = idx == lastStmtIndex
 
-      stmt.accept(this)
+      visit(stmt)
 
       if (!(isLast && expectResult)) {
         // leave the last result on the stack (as result of the statement list
@@ -77,27 +76,20 @@ class ScalaCfgTransformer(implicit val projectContext: ProjectContext)
   override def visitAssignmentStatement(stmt: ScAssignment): Unit = {
     visit(stmt.leftExpression)
 
-    stmt.rightExpression match {
-      case Some(rightExpr) => visit(rightExpr)
-      case None => builder.pushAny()
-    }
+    buildExpressionOrPushAny(stmt.rightExpression)
 
     builder.assign()
   }
 
   def buildDefinition(patternList: ScPatternList, exprOpt: Option[ScExpression]): Unit = {
-    exprOpt match {
-      case Some(expr) => buildExpression(expr)
-      case None => builder.pushAny()
-    }
-
-    val patterns = patternList.patterns
+    val patterns = patternList.patterns.filter(!canIgnorePattern(_))
+    buildExpressionOrPushAnyIfNeeded(exprOpt, needResult = patterns.nonEmpty)
 
     // if we have n patterns,
     // we need to duplicate the value on the stack (n-1) times
     // to have n values on the stack
     builder.dup(patterns.size - 1)
-    patterns.foreach(visit)
+    patterns.foreach(buildPattern)
   }
 
   override def visitVariableDefinition(varDef: ScVariableDefinition): Unit = {

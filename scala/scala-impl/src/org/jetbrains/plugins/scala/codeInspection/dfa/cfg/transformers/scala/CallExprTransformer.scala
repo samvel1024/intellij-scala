@@ -3,7 +3,7 @@ package org.jetbrains.plugins.scala.codeInspection.dfa.cfg.transformers.scala
 import org.jetbrains.plugins.scala.lang.psi.api.ScalaElementVisitor
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
 
-trait CallExprTransformer extends ScalaElementVisitor { this: ScalaCfgTransformer =>
+trait CallExprTransformer extends ScalaElementVisitor { this: Transformer =>
   private def buildInvocation(call: MethodInvocation): Unit = {
     ???
   }
