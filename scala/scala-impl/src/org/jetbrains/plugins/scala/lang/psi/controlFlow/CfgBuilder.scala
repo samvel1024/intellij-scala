@@ -1,6 +1,7 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow
 
-import org.jetbrains.plugins.scala.dfa.{DfEntity, DfValue}
+import org.jetbrains.plugins.scala.dfa.{DfEntity, DfLocalVariable, DfValue, DfVariable}
+import org.jetbrains.plugins.scala.lang.psi.api.toplevel.ScNamedElement
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder.BuildLabel
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg._
 import org.jetbrains.plugins.scala.project.ProjectContext
@@ -13,6 +14,7 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
   private val stackSizeAtLabel = mutable.Map.empty[cfg.Label, Int]
   private var numLabelsToNextInstr = 0
   private var curStackSize = 0
+  private val variableCache = mutable.Map.empty[ScNamedElement, DfVariable]
 
   private def indexOfNextInstr: Int = instructions.length
 
@@ -45,9 +47,29 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
     }
   }
 
+  private def resolveVariable(anchor: ScNamedElement): DfVariable = {
+    variableCache.getOrElseUpdate(anchor, DfLocalVariable(anchor))
+  }
+
+  def write(variable: ScNamedElement): this.type = {
+    newInstr(new Write(resolveVariable(variable)))
+    this
+  }
+
+  def read(variable: ScNamedElement): this.type = {
+    newInstr(new Read(resolveVariable(variable)))
+    this
+  }
+
+  def pushCtx(): this.type = {
+    newInstr(new PushCtx)
+    this
+  }
+
   def pushAny(): this.type = push(DfValue.any)
   def pushUnit(): this.type = push(DfValue.unit)
   def pushNull(): this.type = push(???)
+  def pushNothing(): this.type = push(???)
 
   def pushThis(): this.type = {
     newInstr(new PushThis)
@@ -74,19 +96,37 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
     this
   }
 
-  def assign(): this.type = {
-    newInstr(new Assign)
+  def reorder(mapping: Seq[Int]): this.type = {
+    assert(mapping.forall(idx => 0 <= idx && idx < mapping.length))
+    assert(mapping.toSet.size == mapping.length)
+
+    if (mapping.length >= 2 && mapping.zipWithIndex.exists { case (from, to) => from != to }) {
+      newInstr(new Reorder(mapping.toArray))
+    }
     this
   }
+
+  def reorder(head: Int, mapping: Int*): this.type = reorder(head +: mapping)
+
+  def flip(): this.type = reorder(1, 0)
 
   def ret(): this.type = {
     newInstr(new Ret)
     this
   }
 
+  def end(): this.type = {
+    newInstr(new End)
+    this
+  }
 
   def jumpTo(target: BuildLabel): this.type = {
     newInstr(new Jump(target))
+    this
+  }
+
+  def jumpIfTrue(target: BuildLabel): this.type = {
+    newInstr(new JumpIf(target))
     this
   }
 

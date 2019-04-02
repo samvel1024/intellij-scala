@@ -15,6 +15,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.expr.xml.ScXmlPattern
 import org.jetbrains.plugins.scala.lang.psi.api.statements.params._
 import org.jetbrains.plugins.scala.lang.psi.api.statements.{ScFunction, ScValue, ScVariable}
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.{ScClass, ScTemplateDefinition}
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuildingPattern
 import org.jetbrains.plugins.scala.lang.psi.impl.base.ScStableCodeReferenceImpl
 import org.jetbrains.plugins.scala.lang.psi.impl.base.patterns.ScInterpolationPatternImpl
 import org.jetbrains.plugins.scala.lang.psi.impl.{ScalaPsiElementFactory, ScalaPsiManager}
@@ -38,7 +39,7 @@ import scala.meta.intellij.QuasiquoteInferUtil
  * @author Alexander Podkhalyuzin
  */
 
-trait ScPattern extends ScalaPsiElement with Typeable {
+trait ScPattern extends ScalaPsiElement with Typeable with CfgBuildingPattern {
   def isIrrefutableFor(t: Option[ScType]): Boolean
 
   def bindings: Seq[ScBindingPattern]

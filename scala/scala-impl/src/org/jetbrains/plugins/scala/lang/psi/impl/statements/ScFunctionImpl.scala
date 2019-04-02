@@ -28,6 +28,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.statements.params._
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.ScTypeParametersOwner
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.templates.ScExtendsBlock
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.{ScClass, ScMember, ScTrait, ScTypeDefinition}
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.statements.ScBlockStatementCfgBuildingNoopImpl
 import org.jetbrains.plugins.scala.lang.psi.fake.FakePsiReferenceList
 import org.jetbrains.plugins.scala.lang.psi.impl.ScalaPsiElementFactory.createIdentifier
 import org.jetbrains.plugins.scala.lang.psi.impl.statements.ScFunctionImpl.isJavaVarargs
@@ -56,7 +57,8 @@ abstract class ScFunctionImpl[F <: ScFunction](stub: ScFunctionStub[F],
   extends ScalaStubBasedElementImpl(stub, nodeType, node)
     with ScMember
     with ScFunction
-    with ScTypeParametersOwner {
+    with ScTypeParametersOwner
+    with ScBlockStatementCfgBuildingNoopImpl {
 
   override def isStable = false
 

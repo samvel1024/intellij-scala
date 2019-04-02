@@ -54,21 +54,6 @@ class ScalaExpressionTransformer(val scalaCfgTransformer: ScalaCfgTransformer, o
   }
 
   override def visitWhileStatement(ws: ScWhile): Unit = {
-    val ScWhile(condition, body) = ws
-
-    val loopEntry = builder.createLabel("whileLoop")
-    val loopExit = builder.createLabel("whileExit")
-
-    builder.bindLabel(loopEntry)
-    buildExpressionOrPushAny(condition)
-    builder.jumpIfFalse(loopExit)
-    buildExpressionWithoutResult(body)
-    builder.jumpTo(loopEntry)
-    builder.bindLabel(loopExit)
-
-    if (needResult) {
-      builder.pushUnit()
-    }
   }
 
   override def visitReturnStatement(ret: ScReturn): Unit = {

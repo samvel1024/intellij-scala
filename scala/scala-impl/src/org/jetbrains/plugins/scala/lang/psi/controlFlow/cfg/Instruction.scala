@@ -29,11 +29,12 @@ abstract class Instruction {
   def stackDelta: Int = pushCount - popCount
 
   def asmString: String
+  def asmLine: String = s"$index: $asmString"
   def info: Instruction.Info
 
   def accept(visitor: AbstractInstructionVisitor): Unit
 
-  override def toString: String = s"$index: $asmString"
+  override def toString: String = asmString
 }
 
 

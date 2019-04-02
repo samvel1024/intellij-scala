@@ -10,6 +10,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.base.ScStableCodeReference
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.templates.ScTemplateBody
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.{ScTemplateDefinition, ScTypeDefinition}
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr.ScThisReferenceCfgBuildingImpl
 import org.jetbrains.plugins.scala.lang.psi.impl.ScalaPsiElementFactory.createTypeFromText
 import org.jetbrains.plugins.scala.lang.psi.types._
 import org.jetbrains.plugins.scala.lang.psi.types.api.designator.{DesignatorOwner, ScThisType}
@@ -19,7 +20,8 @@ import org.jetbrains.plugins.scala.lang.psi.types.result._
   * @author Alexander Podkhalyuzin
   *         Date: 06.03.2008
   */
-class ScThisReferenceImpl(node: ASTNode) extends ScExpressionImplBase(node) with ScThisReference {
+class ScThisReferenceImpl(node: ASTNode) extends ScExpressionImplBase(node)
+  with ScThisReference with ScThisReferenceCfgBuildingImpl {
 
   protected override def innerType: TypeResult = {
     import scala.meta.intellij.psi._

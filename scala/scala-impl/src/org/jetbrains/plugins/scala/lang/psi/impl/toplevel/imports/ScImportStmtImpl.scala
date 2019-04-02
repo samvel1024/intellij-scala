@@ -18,6 +18,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.base.ScStableCodeReference
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.imports._
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.imports.usages._
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.{ScObject, ScTemplateDefinition, ScTypeDefinition}
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.statements.ScBlockStatementCfgBuildingNoopImpl
 import org.jetbrains.plugins.scala.lang.psi.impl.base.types.ScSimpleTypeElementImpl
 import org.jetbrains.plugins.scala.lang.psi.stubs.ScImportStmtStub
 import org.jetbrains.plugins.scala.lang.psi.types.ScType
@@ -38,7 +39,8 @@ import scala.collection.mutable
  */
 
 class ScImportStmtImpl private(stub: ScImportStmtStub, node: ASTNode)
-  extends ScalaStubBasedElementImpl(stub, ScalaElementType.IMPORT_STMT, node) with ScImportStmt {
+  extends ScalaStubBasedElementImpl(stub, ScalaElementType.IMPORT_STMT, node)
+    with ScImportStmt with ScBlockStatementCfgBuildingNoopImpl {
 
   def this(node: ASTNode) = this(null, node)
 

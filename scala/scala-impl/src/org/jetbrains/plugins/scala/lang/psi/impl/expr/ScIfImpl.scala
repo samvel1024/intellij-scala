@@ -9,6 +9,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.plugins.scala.lang.lexer.ScalaTokenTypes
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr.ScIfCfgBuildingImpl
 import org.jetbrains.plugins.scala.lang.psi.types.ScTypeExt
 import org.jetbrains.plugins.scala.lang.psi.types.api.Unit
 import org.jetbrains.plugins.scala.lang.psi.types.result._
@@ -17,7 +18,7 @@ import org.jetbrains.plugins.scala.lang.psi.types.result._
   * @author Alexander Podkhalyuzin
   *         Date: 06.03.2008
   */
-class ScIfImpl(node: ASTNode) extends ScExpressionImplBase(node) with ScIf {
+class ScIfImpl(node: ASTNode) extends ScExpressionImplBase(node) with ScIf  with ScIfCfgBuildingImpl {
 
   def condition: Option[ScExpression] = {
     val rpar = findChildByType[PsiElement](ScalaTokenTypes.tRPARENTHESIS)

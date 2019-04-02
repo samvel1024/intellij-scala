@@ -7,7 +7,7 @@ class JumpIfNot private[controlFlow](override val targetLabel: Label) extends Ju
   override def popCount: Int = 1
   override def asmString: String = s"jumpIfNot $targetLabel"
   override def info: Instruction.Info = JumpIfNot
-  override def accept(visitor: AbstractInstructionVisitor): Unit = visitor.visitJumpIFNot(this)
+  override def accept(visitor: AbstractInstructionVisitor): Unit = visitor.visitJumpIfNot(this)
 }
 
 object JumpIfNot extends Instruction.Info(

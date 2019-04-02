@@ -1,15 +1,19 @@
 package org.jetbrains.plugins.scala.dfa
 
+import org.jetbrains.plugins.scala.lang.psi.api.toplevel.ScNamedElement
 import org.jetbrains.plugins.scala.lang.psi.types.ScType
 import org.jetbrains.plugins.scala.project.ProjectContext
 
 sealed abstract class DfEntity {
 }
 
-sealed abstract class DfVariable extends DfEntity
+sealed abstract class DfVariable extends DfEntity {
+  def anchor: ScNamedElement
+  def name: String = anchor.name
+}
 
-class DfLocalVariable extends DfVariable
-class DfMemberVariable extends DfVariable
+case class DfLocalVariable(override val anchor: ScNamedElement) extends DfVariable
+case class DfMemberVariable(override val anchor: ScNamedElement) extends DfVariable
 
 
 sealed abstract class DfValue extends DfEntity
@@ -43,6 +47,8 @@ sealed abstract class DfConcreteAnyVal extends DfValue {
 
 case object DfUnit extends DfConcreteAnyVal {
   def value: Unit = ()
+
+  override def toString: String = "unit"
 }
 
 sealed abstract class DfConcreteBoolean extends DfConcreteAnyVal {
@@ -56,13 +62,19 @@ object DfConcreteBoolean {
 
 case object DfTrue extends DfConcreteBoolean {
   override def value: Boolean = true
+
+  override def toString: String = "true"
 }
 
 case object DfFalse extends DfConcreteBoolean {
   override def value: Boolean = false
+
+  override def toString: String = "false"
 }
 
 sealed abstract class DfConcreteIntegral extends DfConcreteAnyVal
 
-case class DfConcreteInt(override val value: Int) extends DfConcreteIntegral
+case class DfConcreteInt(override val value: Int) extends DfConcreteIntegral {
+  override def toString: String = value.toString
+}
 

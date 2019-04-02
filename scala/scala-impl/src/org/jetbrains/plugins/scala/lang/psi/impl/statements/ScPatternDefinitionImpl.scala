@@ -12,6 +12,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.base.patterns.ScBindingPattern
 import org.jetbrains.plugins.scala.lang.psi.api.base.types.ScTypeElement
 import org.jetbrains.plugins.scala.lang.psi.api.expr.ScExpression
 import org.jetbrains.plugins.scala.lang.psi.api.statements._
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.statements.ScPatternDefinitionCfgBuildingImpl
 import org.jetbrains.plugins.scala.lang.psi.stubs.ScPropertyStub
 import org.jetbrains.plugins.scala.lang.psi.stubs.elements.ScPropertyElementType
 import org.jetbrains.plugins.scala.lang.psi.types.ScLiteralType
@@ -23,7 +24,8 @@ import org.jetbrains.plugins.scala.lang.psi.types.result._
 final class ScPatternDefinitionImpl private[psi](stub: ScPropertyStub[ScPatternDefinition],
                                                  nodeType: ScPropertyElementType[ScPatternDefinition],
                                                  node: ASTNode)
-  extends ScalaStubBasedElementImpl(stub, nodeType, node) with ScPatternDefinition {
+  extends ScalaStubBasedElementImpl(stub, nodeType, node)
+    with ScPatternDefinition with ScPatternDefinitionCfgBuildingImpl {
 
   override def toString: String = ifReadAllowed {
     val names = declaredNames

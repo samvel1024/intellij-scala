@@ -1,4 +1,4 @@
-package org.jetbrains.plugins.scala.codeInspection.controlFlow
+package org.jetbrains.plugins.scala.lang.controlFlow.cfg
 
 import junit.framework.TestCase
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.JumpingInstruction

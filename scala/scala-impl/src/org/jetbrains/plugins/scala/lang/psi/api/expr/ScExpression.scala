@@ -16,6 +16,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.expr.ExpectedTypes.ParameterType
 import org.jetbrains.plugins.scala.lang.psi.api.statements.{ScFunction, ScValueOrVariable}
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.imports.usages.ImportUsed
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.templates.ScTemplateBody
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuildingExpression
 import org.jetbrains.plugins.scala.lang.psi.impl
 import org.jetbrains.plugins.scala.lang.psi.implicits.{ImplicitCollector, ScImplicitlyConvertible}
 import org.jetbrains.plugins.scala.lang.psi.types._
@@ -38,7 +39,8 @@ trait ScExpression extends ScBlockStatement
   with PsiAnnotationMemberValue
   with PsiModifiableCodeBlock
   with ImplicitArgumentsOwner
-  with Typeable {
+  with Typeable
+  with CfgBuildingExpression {
 
   import ScExpression._
 

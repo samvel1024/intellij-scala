@@ -1,7 +1,7 @@
-package org.jetbrains.plugins.scala.codeInspection.controlFlow
+package org.jetbrains.plugins.scala.lang.controlFlow.cfg
 
-import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg._
+
 import scala.reflect.runtime.universe._
 
 object InstructionLists {
@@ -11,10 +11,17 @@ object InstructionLists {
 
   val allInstructions: Seq[(Type, Instruction.Info)] = Seq(
     bundle[Push](Push),
+    bundle[PushThis](PushThis),
+    bundle[PushCtx](PushCtx),
     bundle[Pop](Pop),
     bundle[Dup](Dup),
-    bundle[cfg.Assign](cfg.Assign),
+    bundle[Reorder](Reorder),
+    bundle[Read](Read),
+    bundle[Write](Write),
     bundle[Jump](Jump),
-    bundle[Ret](Ret)
+    bundle[JumpIf](JumpIf),
+    bundle[JumpIfNot](JumpIfNot),
+    bundle[Ret](Ret),
+    bundle[End](End)
   )
 }

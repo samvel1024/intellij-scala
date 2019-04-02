@@ -1,4 +1,4 @@
-package org.jetbrains.plugins.scala.codeInspection.controlFlow
+package org.jetbrains.plugins.scala.lang.controlFlow
 
 import org.junit.ComparisonFailure
 

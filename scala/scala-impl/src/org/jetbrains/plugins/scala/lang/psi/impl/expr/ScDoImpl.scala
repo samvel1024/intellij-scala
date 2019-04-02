@@ -9,12 +9,13 @@ import com.intellij.psi._
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.plugins.scala.lang.lexer.ScalaTokenTypes
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr.ScDoCfgBuildingImpl
 
 /**
   * @author Alexander Podkhalyuzin
   *         Date: 06.03.2008
   */
-class ScDoImpl(node: ASTNode) extends ScExpressionImplBase(node) with ScDo {
+class ScDoImpl(node: ASTNode) extends ScExpressionImplBase(node) with ScDo with ScDoCfgBuildingImpl {
 
   def body: Option[ScExpression] = findChild(classOf[ScExpression])
 

@@ -78,7 +78,8 @@ class ScalaCfgTransformer(implicit val projectContext: ProjectContext)
 
     buildExpressionOrPushAny(stmt.rightExpression)
 
-    builder.assign()
+    //builder.assign()
+    ???
   }
 
   def buildDefinition(patternList: ScPatternList, exprOpt: Option[ScExpression]): Unit = {

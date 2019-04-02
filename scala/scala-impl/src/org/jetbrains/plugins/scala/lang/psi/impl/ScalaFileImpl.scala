@@ -27,6 +27,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.statements.{ScFunction, ScTypeAl
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.ScPackaging
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.imports.ScImportStmt
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.{ScClass, ScObject, ScTrait, ScTypeDefinition}
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.ControlFlowBuildingFileImpl
 import org.jetbrains.plugins.scala.lang.refactoring.util.ScalaNamesUtil
 import org.jetbrains.plugins.scala.macroAnnotations.{CachedInUserData, ModCount}
 
@@ -39,6 +40,7 @@ class ScalaFileImpl(viewProvider: FileViewProvider,
     with ScalaFile
     with FileDeclarationsHolder
     with ScControlFlowOwner
+    with ControlFlowBuildingFileImpl
     with FileResolveScopeProvider {
 
   import ScalaFileImpl._

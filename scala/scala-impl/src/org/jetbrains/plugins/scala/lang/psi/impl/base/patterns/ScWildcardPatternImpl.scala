@@ -7,6 +7,7 @@ package patterns
 
 import com.intellij.lang.ASTNode
 import org.jetbrains.plugins.scala.lang.psi.api.base.patterns._
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.patterns.ScWildcardPatternCfgBuildingImpl
 import org.jetbrains.plugins.scala.lang.psi.types.ScType
 import org.jetbrains.plugins.scala.lang.psi.types.result._
 
@@ -15,7 +16,9 @@ import org.jetbrains.plugins.scala.lang.psi.types.result._
 * Date: 28.02.2008
 */
 
-class ScWildcardPatternImpl(node: ASTNode) extends ScalaPsiElementImpl (node) with ScPatternImpl with ScWildcardPattern {
+class ScWildcardPatternImpl(node: ASTNode)
+  extends ScalaPsiElementImpl (node)
+    with ScPatternImpl with ScWildcardPattern with ScWildcardPatternCfgBuildingImpl {
 
   override def isIrrefutableFor(t: Option[ScType]): Boolean = true
 

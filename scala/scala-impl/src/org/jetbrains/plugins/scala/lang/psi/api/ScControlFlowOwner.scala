@@ -1,7 +1,7 @@
 package org.jetbrains.plugins.scala.lang.psi.api
 
-import org.jetbrains.plugins.scala.lang.psi.controlFlow.Instruction
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.ScalaControlFlowBuilder
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.{ControlFlowGraph, Instruction}
 import org.jetbrains.plugins.scala.macroAnnotations.{Cached, ModCount}
 
 /**
@@ -21,4 +21,9 @@ trait ScControlFlowOwner extends ScalaPsiElement {
   }
 
   def controlFlowScope: Option[ScalaPsiElement]
+
+  @Cached(ModCount.getModificationCount, this)
+  def controlFlowGraph: ControlFlowGraph = buildControlFlow()
+
+  protected def buildControlFlow(): ControlFlowGraph = ???
 }
