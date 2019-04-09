@@ -7,8 +7,6 @@ import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.Label
 trait ScReferencePatternCfgBuildingImpl { this: ScReferencePattern =>
   override def buildPatternControlFlow(noMatchTarget: Option[Label])(implicit builder: CfgBuilder): Unit = {
     builder
-      .pushCtx()
-      .flip()
       .write(this)
   }
 }

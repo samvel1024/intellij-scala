@@ -1,5 +1,6 @@
 package org.jetbrains.plugins.scala.dfa
 
+import com.intellij.psi.{PsiElement, PsiNamedElement}
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.ScNamedElement
 import org.jetbrains.plugins.scala.lang.psi.types.ScType
 import org.jetbrains.plugins.scala.project.ProjectContext
@@ -8,12 +9,21 @@ sealed abstract class DfEntity {
 }
 
 sealed abstract class DfVariable extends DfEntity {
-  def anchor: ScNamedElement
-  def name: String = anchor.name
+  def anchor: PsiElement
+  def name: String
+
+  override def toString: String = name
 }
 
-case class DfLocalVariable(override val anchor: ScNamedElement) extends DfVariable
-case class DfMemberVariable(override val anchor: ScNamedElement) extends DfVariable
+class DfRegister(override val anchor: PsiElement, val location: Int, val id: Int) extends DfVariable {
+  override def name: String = "%" + Integer.toUnsignedString(id, 36)
+}
+case class DfLocalVariable(override val anchor: PsiNamedElement) extends DfVariable {
+  override def name: String = anchor.getName
+}
+case class DfMemberVariable(override val anchor: PsiNamedElement) extends DfVariable {
+  override def name: String = anchor.getName
+}
 
 
 sealed abstract class DfValue extends DfEntity
@@ -40,6 +50,10 @@ class DfAbstractValue(upperBound: ScType) extends DfValue {
 sealed abstract class DfConcreteValue extends DfValue
 
 class DfConcreteAnyRef extends DfConcreteValue
+
+class DfConcreteStringRef(value: String) extends DfConcreteAnyRef {
+  override def toString: String = '\"' + value + '\"'
+}
 
 sealed abstract class DfConcreteAnyVal extends DfValue {
   def value: AnyVal

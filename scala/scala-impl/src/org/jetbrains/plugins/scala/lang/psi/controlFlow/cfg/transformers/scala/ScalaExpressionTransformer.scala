@@ -3,7 +3,7 @@ package org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.transformers.scala
 import com.intellij.psi.PsiElement
 import org.jetbrains.plugins.scala.dfa.DfValue
 import org.jetbrains.plugins.scala.lang.psi.api.ScalaElementVisitor
-import org.jetbrains.plugins.scala.lang.psi.api.base.{ScIntLiteral, ScLiteral, ScNullLiteral}
+import org.jetbrains.plugins.scala.lang.psi.api.base.ScLiteral
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
 
@@ -35,7 +35,7 @@ class ScalaExpressionTransformer(val scalaCfgTransformer: ScalaCfgTransformer, o
     }
   }
 
-  override def visitIfStatement(stmt: ScIf): Unit = {
+  override def visitIf(stmt: ScIf): Unit = {
     val ScIf(condition, thenExpression, elseExpression) = stmt
 
     val hasElse = needResult || elseExpression.isDefined
@@ -53,10 +53,10 @@ class ScalaExpressionTransformer(val scalaCfgTransformer: ScalaCfgTransformer, o
     builder.bindLabel(endLabel)
   }
 
-  override def visitWhileStatement(ws: ScWhile): Unit = {
+  override def visitWhile(ws: ScWhile): Unit = {
   }
 
-  override def visitReturnStatement(ret: ScReturn): Unit = {
+  override def visitReturn(ret: ScReturn): Unit = {
     buildExpressionOrPushUnit(ret.expr)
     builder.ret()
   }
@@ -67,10 +67,12 @@ class ScalaExpressionTransformer(val scalaCfgTransformer: ScalaCfgTransformer, o
   }
 
   override def visitLiteral(literal: ScLiteral): Unit = {
-    literal match {
-      case ScNullLiteral() =>
+    import ScLiteral._
+
+    Value(literal) match {
+      case NullValue =>
         builder.pushNull()
-      case ScIntLiteral(value) =>
+      case IntegerValue(value) =>
         builder.push(DfValue.int(value))
 
       case _ =>

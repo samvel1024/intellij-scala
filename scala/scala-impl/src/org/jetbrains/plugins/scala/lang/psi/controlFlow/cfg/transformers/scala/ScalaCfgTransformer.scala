@@ -73,7 +73,7 @@ class ScalaCfgTransformer(implicit val projectContext: ProjectContext)
     buildExpression(expr)
   }
 
-  override def visitAssignmentStatement(stmt: ScAssignment): Unit = {
+  override def visitAssignment(stmt: ScAssignment): Unit = {
     visit(stmt.leftExpression)
 
     buildExpressionOrPushAny(stmt.rightExpression)

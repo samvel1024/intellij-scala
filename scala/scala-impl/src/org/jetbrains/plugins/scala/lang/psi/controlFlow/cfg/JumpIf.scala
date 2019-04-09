@@ -1,11 +1,11 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg
 
+import org.jetbrains.plugins.scala.dfa.DfEntity
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.AbstractInstructionVisitor
 
-class JumpIf private[controlFlow](override val targetLabel: Label) extends JumpingInstruction {
+class JumpIf private[controlFlow](val condition: DfEntity, val targetLabel: Label) extends JumpingInstruction {
 
-  override def popCount: Int = 1
-  override def asmString: String = s"jumpIf $targetLabel"
+  override def asmString: String = s"if $condition -> $targetLabel"
   override def info: Instruction.Info = JumpIf
   override def accept(visitor: AbstractInstructionVisitor): Unit = visitor.visitJumpIf(this)
 }

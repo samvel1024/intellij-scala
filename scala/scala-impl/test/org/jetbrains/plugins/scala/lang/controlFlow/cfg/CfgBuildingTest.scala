@@ -18,15 +18,14 @@ class CfgBuildingTest extends ScalaLightCodeInsightFixtureTestAdapter {
     )
 
     val func = actualFile.asInstanceOf[ScControlFlowOwner]
-    assertEquals(func.controlFlowGraph.asmText(lineNumbers = false), result.trim)
+    assertEquals(result.trim, func.controlFlowGraph.asmText(lineNumbers = false))
   }
 
   def test_unit(): Unit = {
     check(
       "()",
       """
-        |push unit
-        |pop
+        |noop unit
         |end
       """.stripMargin
     )
@@ -34,9 +33,8 @@ class CfgBuildingTest extends ScalaLightCodeInsightFixtureTestAdapter {
     check(
       "val a = ()",
       """
-        |push unit
-        |push a
-        |assign
+        |a = unit
+        |end
       """.stripMargin
     )
   }
@@ -44,13 +42,22 @@ class CfgBuildingTest extends ScalaLightCodeInsightFixtureTestAdapter {
   def test_if(): Unit = {
     check(
       """
+        |val a = 0
         |if (a) {
         |  "then"
         |} else {
         |  "else"
         |}
       """.stripMargin,
-      ""
+      """
+        |a = 0
+        |%0 <- a
+        |if! %0 -> .Lelse[5]
+        |noop "then"
+        |jmp .LendIf[6]
+        |noop "else"
+        |end
+      """.stripMargin
     )
   }
 }

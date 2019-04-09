@@ -9,7 +9,7 @@ import org.jetbrains.plugins.scala.lang.psi.controlFlow.AbstractInstructionVisit
  */
 class Jump private[controlFlow](override val targetLabel: Label) extends JumpingInstruction {
 
-  override def asmString: String = s"jump $targetLabel"
+  override def asmString: String = s"jmp $targetLabel"
   override def info: Instruction.Info = Jump
   override def accept(visitor: AbstractInstructionVisitor): Unit = visitor.visitJump(this)
 }

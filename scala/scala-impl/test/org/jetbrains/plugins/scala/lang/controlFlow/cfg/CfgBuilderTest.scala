@@ -19,11 +19,11 @@ class CfgBuilderTest extends SimpleTestCase with ExceptionAssert {
   def test_StackUnderflow(): Unit = {
     val builder = new CfgBuilder
 
-    assertExceptionMessage[IllegalArgumentException]("Instruction '0: pop' will result in a stack underflow") {
+    assertException[AssertionError] {
       builder.pop()
     }
 
-    assertExceptionMessage[IllegalArgumentException]("Instruction '0: dup' will result in a stack underflow") {
+    assertException[AssertionError] {
       builder.dup()
     }
   }
@@ -117,7 +117,7 @@ class CfgBuilderTest extends SimpleTestCase with ExceptionAssert {
       .bindLabel(label)
       .pushAny()
 
-    assertExceptionMessage[IllegalStateException]("When jumping to label .Lbegin[0], expected stack size 0 but current stack size is 1") {
+    assertExceptionMessage[IllegalStateException]("When jumping to label .Lbegin[0], stack is different") {
       builder.jumpTo(label)
     }
   }
@@ -133,7 +133,7 @@ class CfgBuilderTest extends SimpleTestCase with ExceptionAssert {
       .jumpTo(label)
 
     val cfg = builder.build()
-    assertEquals(cfg.instructionCount, 3)
+    assertEquals(1, cfg.instructionCount)
   }
 
   def test_Dup(): Unit = {

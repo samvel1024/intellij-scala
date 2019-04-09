@@ -10,7 +10,7 @@ trait ScThisReferenceCfgBuildingImpl { this: ScThisReference =>
     builder.pushThis()
 
     if (!withResult) {
-      builder.pop()
+      builder.noop()
     }
   }
 }

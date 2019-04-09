@@ -22,6 +22,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.statements.params.ScParameter
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.ScTypedDefinition
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef._
 import org.jetbrains.plugins.scala.lang.psi.api.{ScPackage, ScalaElementVisitor, ScalaRecursiveElementVisitor}
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr.ScReferenceExpressionCfgBuildingImpl
 import org.jetbrains.plugins.scala.lang.psi.impl.ScalaPsiElementFactory.{createExpressionFromText, createExpressionWithContextFromText}
 import org.jetbrains.plugins.scala.lang.psi.impl.toplevel.synthetic.ScSyntheticValue
 import org.jetbrains.plugins.scala.lang.psi.types._
@@ -42,7 +43,8 @@ import scala.collection.mutable
   * @author AlexanderPodkhalyuzin
   *         Date: 06.03.2008
   */
-class ScReferenceExpressionImpl(node: ASTNode) extends ScReferenceImpl(node) with ScReferenceExpression {
+class ScReferenceExpressionImpl(node: ASTNode) extends ScReferenceImpl(node)
+  with ScReferenceExpression with ScReferenceExpressionCfgBuildingImpl {
 
   private[this] var maybeAssignment: Option[ScAssignment] = None
 

@@ -22,12 +22,6 @@ abstract class Instruction {
     _graph
   }
 
-
-  def popCount: Int = 0
-  def pushCount: Int = 0
-
-  def stackDelta: Int = pushCount - popCount
-
   def asmString: String
   def asmLine: String = s"$index: $asmString"
   def info: Instruction.Info

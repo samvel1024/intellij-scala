@@ -16,6 +16,9 @@ import com.intellij.psi.util.PsiLiteralUtil
 import com.intellij.util.text.LiteralFormatUtil
 import org.jetbrains.plugins.scala.lang.psi.api.ScalaElementVisitor
 import org.jetbrains.plugins.scala.lang.psi.api.base.ScLiteral
+import org.jetbrains.plugins.scala.lang.psi.api.base.{ScInterpolatedStringLiteral, ScLiteral}
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr.ScLiteralCfgBuildingImpl
+import org.jetbrains.plugins.scala.lang.psi.impl.expr.ScExpressionImplBase
 import org.jetbrains.plugins.scala.lang.psi.types._
 import org.jetbrains.plugins.scala.macroAnnotations.CachedInUserData
 
@@ -24,7 +27,7 @@ import org.jetbrains.plugins.scala.macroAnnotations.CachedInUserData
   *         Date: 22.02.2008
   */
 class ScLiteralImpl(node: ASTNode) extends expr.ScExpressionImplBase(node)
-  with ScLiteral with ContributedReferenceHost {
+  with ScLiteral with ContributedReferenceHost with ScLiteralCfgBuildingImpl {
 
   import ScLiteralImpl._
   import lang.lexer.{ScalaTokenTypes => T}

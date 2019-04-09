@@ -10,12 +10,6 @@ object InstructionLists {
     (typeOf[T], info)
 
   val allInstructions: Seq[(Type, Instruction.Info)] = Seq(
-    bundle[Push](Push),
-    bundle[PushThis](PushThis),
-    bundle[PushCtx](PushCtx),
-    bundle[Pop](Pop),
-    bundle[Dup](Dup),
-    bundle[Reorder](Reorder),
     bundle[Read](Read),
     bundle[Write](Write),
     bundle[Jump](Jump),

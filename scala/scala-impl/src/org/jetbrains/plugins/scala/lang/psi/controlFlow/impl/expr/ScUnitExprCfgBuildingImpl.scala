@@ -8,7 +8,7 @@ trait ScUnitExprCfgBuildingImpl { this: ScUnitExpr =>
     builder.pushUnit()
 
     if (!withResult) {
-      builder.pop()
+      builder.noop()
     }
   }
 }

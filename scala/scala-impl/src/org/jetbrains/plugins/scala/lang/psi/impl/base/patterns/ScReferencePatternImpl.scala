@@ -17,6 +17,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.base.ScPatternList
 import org.jetbrains.plugins.scala.lang.psi.api.base.patterns._
 import org.jetbrains.plugins.scala.lang.psi.api.statements.ScDeclaredElementsHolder
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.ScMember
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.patterns.ScReferencePatternCfgBuildingImpl
 import org.jetbrains.plugins.scala.lang.psi.impl.ScalaPsiElementFactory.createWildcardPattern
 import org.jetbrains.plugins.scala.lang.psi.stubs.ScBindingPatternStub
 import org.jetbrains.plugins.scala.lang.psi.types.ScType
@@ -27,7 +28,8 @@ import org.jetbrains.plugins.scala.lang.psi.types.result._
   *         Date: 28.02.2008
   */
 class ScReferencePatternImpl private(stub: ScBindingPatternStub[ScReferencePattern], node: ASTNode)
-  extends ScalaStubBasedElementImpl(stub, ScalaElementType.REFERENCE_PATTERN, node) with ScPatternImpl with ScReferencePattern with ContributedReferenceHost {
+  extends ScalaStubBasedElementImpl(stub, ScalaElementType.REFERENCE_PATTERN, node)
+    with ScPatternImpl with ScReferencePattern with ContributedReferenceHost with ScReferencePatternCfgBuildingImpl {
 
   def this(node: ASTNode) = this(null, node)
 

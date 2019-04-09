@@ -1,33 +1,39 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow
 
-import org.jetbrains.plugins.scala.dfa.{DfEntity, DfLocalVariable, DfValue, DfVariable}
+import com.intellij.psi.{PsiElement, PsiNamedElement}
+import org.jetbrains.plugins.scala.dfa.{DfConcreteAnyRef, DfConcreteStringRef, DfEntity, DfLocalVariable, DfRegister, DfValue, DfVariable}
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.ScNamedElement
-import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder.BuildLabel
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder._
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg._
 import org.jetbrains.plugins.scala.project.ProjectContext
 
 import scala.collection.mutable
 
 class CfgBuilder(implicit val projectContext: ProjectContext) {
+  private type Stack = List[DfEntity]
+
+  private var nextRegisterId = 0
   private val instructions = mutable.Buffer.empty[cfg.Instruction]
   private val unboundLabels = mutable.Set.empty[BuildLabel]
-  private val stackSizeAtLabel = mutable.Map.empty[cfg.Label, Int]
+  private val stackSizeAtLabel = mutable.Map.empty[cfg.Label, Stack]
   private var numLabelsToNextInstr = 0
-  private var curStackSize = 0
-  private val variableCache = mutable.Map.empty[ScNamedElement, DfVariable]
+  private var vstack: Stack = List.empty
+  private val stringLiteralCache = mutable.Map.empty[String, DfConcreteAnyRef]
+  private val variableCache = mutable.Map.empty[PsiNamedElement, DfVariable]
 
   private def indexOfNextInstr: Int = instructions.length
 
   private def hasControlFlowFromPreviousInstruction: Boolean =
     instructions.lastOption.forall(_.info.hasControlFlowAfter)
 
+  private def newRegisterId(): Int = {
+    val nextId = nextRegisterId
+    nextRegisterId += 1
+    nextId
+  }
+
   private def newInstr(instr: cfg.Instruction): cfg.Instruction = {
     instr.index = indexOfNextInstr
-
-    if (instr.popCount > curStackSize)
-      throw new IllegalArgumentException(s"Instruction '$instr' will result in a stack underflow")
-
-    curStackSize += instr.stackDelta
     instructions += instr
     numLabelsToNextInstr = 0
     instr
@@ -40,29 +46,44 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
   }
 
   private def use(label: Label): Unit = {
-    val targetStackSize = stackSizeAtLabel.getOrElseUpdate(label, curStackSize)
+    val lstack = stackSizeAtLabel.getOrElseUpdate(label, vstack)
 
-    if (curStackSize != targetStackSize) {
-      throw new IllegalStateException(s"When jumping to label $label, expected stack size $targetStackSize but current stack size is $curStackSize")
+    if (vstack ne lstack) {
+      throw new IllegalStateException(s"When jumping to label $label, stack is different")
     }
   }
 
-  private def resolveVariable(anchor: ScNamedElement): DfVariable = {
+  private def resolveVariable(anchor: PsiNamedElement): DfVariable = {
     variableCache.getOrElseUpdate(anchor, DfLocalVariable(anchor))
   }
 
+  private def vpop(): DfEntity = {
+    assert(vstack.nonEmpty)
+    val head :: rest = vstack
+    vstack = rest
+    head
+  }
+
+  private def vpush[E <: DfEntity](entity: E): E = {
+    vstack ::= entity
+    entity
+  }
+
+  private def vpush(anchor: PsiElement): DfRegister =
+    vpush(new DfRegister(anchor, newRegisterId(), vstack.size))
+
   def write(variable: ScNamedElement): this.type = {
-    newInstr(new Write(resolveVariable(variable)))
+    newInstr(new Write(resolveVariable(variable), vpop()))
     this
   }
 
-  def read(variable: ScNamedElement): this.type = {
-    newInstr(new Read(resolveVariable(variable)))
+  def read(variable: PsiNamedElement): this.type = {
+    newInstr(new Read(vpush(variable), resolveVariable(variable)))
     this
   }
 
   def pushCtx(): this.type = {
-    newInstr(new PushCtx)
+    push(???)
     this
   }
 
@@ -72,17 +93,28 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
   def pushNothing(): this.type = push(???)
 
   def pushThis(): this.type = {
-    newInstr(new PushThis)
+    push(???)
     this
   }
 
   def push(value: DfEntity): this.type = {
-    newInstr(new Push(value))
+    vpush(value)
+    this
+  }
+
+  def pushString(string: String): this.type = {
+    val entity = stringLiteralCache.getOrElseUpdate(string, new DfConcreteStringRef(string))
+    vpush(entity)
     this
   }
 
   def pop(): this.type = {
-    newInstr(new Pop)
+    vpop()
+    this
+  }
+
+  def noop(): this.type = {
+    newInstr(new Noop(vpop()))
     this
   }
 
@@ -91,7 +123,8 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
       throw new IllegalArgumentException("Tried to duplicate negative times, which probably indicates an error")
 
     if (times >= 1) {
-      newInstr(new Dup(times))
+      val entity = vpop()
+      vstack :::= List.fill(times)(entity)
     }
     this
   }
@@ -99,10 +132,11 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
   def reorder(mapping: Seq[Int]): this.type = {
     assert(mapping.forall(idx => 0 <= idx && idx < mapping.length))
     assert(mapping.toSet.size == mapping.length)
+    assert(vstack.length >= mapping.length)
 
-    if (mapping.length >= 2 && mapping.zipWithIndex.exists { case (from, to) => from != to }) {
-      newInstr(new Reorder(mapping.toArray))
-    }
+    val (source, vrest) = vstack.splitAt(mapping.length)
+    vstack = mapping.map(source) ++: vrest
+
     this
   }
 
@@ -111,7 +145,7 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
   def flip(): this.type = reorder(1, 0)
 
   def ret(): this.type = {
-    newInstr(new Ret)
+    newInstr(new Ret(vpop()))
     this
   }
 
@@ -126,12 +160,12 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
   }
 
   def jumpIfTrue(target: BuildLabel): this.type = {
-    newInstr(new JumpIf(target))
+    newInstr(new JumpIf(vpop(), target))
     this
   }
 
   def jumpIfFalse(target: BuildLabel): this.type = {
-    newInstr(new JumpIfNot(target))
+    newInstr(new JumpIfNot(vpop(), target))
     this
   }
 
@@ -142,9 +176,9 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
     if (!unboundLabels.contains(label))
       throw new IllegalArgumentException(s"Label $label belongs to another builder")
 
-    val expectedStackSize = stackSizeAtLabel.getOrElseUpdate(label, curStackSize)
-    if (expectedStackSize != curStackSize) {
-      throw new IllegalArgumentException(s"Cannot bind label $label to stack size $curStackSize, because label expected stack size $expectedStackSize")
+    val expectedStack = stackSizeAtLabel.getOrElseUpdate(label, vstack)
+    if (vstack.size != expectedStack.size) {
+      throw new IllegalArgumentException(s"Cannot bind label $label to stack size ${vstack.size}, because label expected stack size ${expectedStack.size}")
     }
 
     unboundLabels -= label
