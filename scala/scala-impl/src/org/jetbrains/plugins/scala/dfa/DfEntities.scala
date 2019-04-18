@@ -15,7 +15,7 @@ sealed abstract class DfVariable extends DfEntity {
   override def toString: String = name
 }
 
-class DfRegister(override val anchor: PsiElement, val location: Int, val id: Int) extends DfVariable {
+class DfRegister(override val anchor: PsiElement, val id: Int) extends DfVariable {
   override def name: String = "%" + Integer.toUnsignedString(id, 36)
 }
 case class DfLocalVariable(override val anchor: PsiNamedElement) extends DfVariable {
