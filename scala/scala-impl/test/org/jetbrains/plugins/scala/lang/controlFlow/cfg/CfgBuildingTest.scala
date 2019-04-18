@@ -39,7 +39,7 @@ class CfgBuildingTest extends ScalaLightCodeInsightFixtureTestAdapter {
     )
   }
 
-  def test_if(): Unit = {
+  def test_if_with_else(): Unit = {
     check(
       """
         |val a = 0
@@ -56,6 +56,49 @@ class CfgBuildingTest extends ScalaLightCodeInsightFixtureTestAdapter {
         |noop "then"
         |jmp .LendIf[6]
         |noop "else"
+        |end
+      """.stripMargin
+    )
+
+    check(
+      """
+        |val a = if (true) "then" else "else"
+      """.stripMargin,
+      """
+        |if! true -> .Lelse[2]
+        |%0 <- "then"
+        |jmp .LendIf[4]
+        |%0 <- "else"
+        |a = %0
+        |end
+      """.stripMargin
+    )
+  }
+
+  def test_if_without_else(): Unit = {
+    check(
+      """
+        |if (true) {
+        |  "then"
+        |}
+      """.stripMargin,
+      """
+        |if! true -> .LendIf[2]
+        |noop "then"
+        |end
+      """.stripMargin
+    )
+
+    check(
+      """
+        |val a = if (true) "then"
+      """.stripMargin,
+      """
+        |if! true -> .Lelse[2]
+        |%0 <- "then"
+        |jmp .LendIf[4]
+        |%0 <- unit
+        |a = %0
         |end
       """.stripMargin
     )

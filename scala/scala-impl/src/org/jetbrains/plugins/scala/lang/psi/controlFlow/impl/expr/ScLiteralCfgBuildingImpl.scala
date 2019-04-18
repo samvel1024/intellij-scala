@@ -1,7 +1,7 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr
 
 import org.jetbrains.plugins.scala.dfa.DfValue
-import org.jetbrains.plugins.scala.lang.psi.api.base.ScLiteral
+import org.jetbrains.plugins.scala.lang.psi.api.base._
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
 
 trait ScLiteralCfgBuildingImpl { this: ScLiteral =>
@@ -12,6 +12,9 @@ trait ScLiteralCfgBuildingImpl { this: ScLiteral =>
     Value(this) match {
       case NullValue =>
         builder.pushNull()
+
+      case BooleanValue(bool) =>
+        builder.push(DfValue.boolean(bool))
 
       case IntegerValue(int) =>
         builder.push(DfValue.int(int))

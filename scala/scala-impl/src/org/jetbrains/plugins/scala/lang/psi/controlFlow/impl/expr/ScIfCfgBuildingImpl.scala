@@ -17,6 +17,8 @@ trait ScIfCfgBuildingImpl { this: ScIf =>
     buildExpressionOrPushAnyIfNeeded(thenExpression, withResult)
     if (hasElse) {
       builder.jumpTo(endLabel)
+      if (withResult)
+        builder.pop()
       builder.bindLabel(elseLabel)
       buildExpressionOrPushUnitIfNeeded(elseExpression, withResult)
     }
