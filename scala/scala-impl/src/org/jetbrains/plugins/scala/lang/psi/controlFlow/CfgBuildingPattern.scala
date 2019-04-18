@@ -1,5 +1,6 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow
 
+import org.jetbrains.plugins.scala.dfa.{DfEntity, DfValue}
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.Label
 
 trait CfgBuildingPattern {
@@ -15,5 +16,5 @@ trait CfgBuildingPattern {
    * @param noMatchTarget the label to jump to if the match fails
    * @param builder the builder to add the instructions to
    */
-  def buildPatternControlFlow(noMatchTarget: Option[Label])(implicit builder: CfgBuilder): Unit = ???
+  def buildPatternControlFlow(value: DfEntity, noMatchTarget: Option[Label])(implicit builder: CfgBuilder): Unit = ???
 }

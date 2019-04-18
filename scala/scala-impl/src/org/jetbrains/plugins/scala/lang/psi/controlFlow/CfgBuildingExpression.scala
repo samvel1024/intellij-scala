@@ -1,13 +1,15 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow
 
-trait CfgBuildingExpression { this: CfgBuildingBlockStatement =>
-  protected def buildActualExpressionControlFlow(withResult: Boolean)(implicit builder: CfgBuilder): Unit = ???
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.{ExprResult, ResultRequirement}
 
-  final def buildCfg(withResult: Boolean)(implicit builder: CfgBuilder): Unit = {
-    buildActualExpressionControlFlow(withResult)
+trait CfgBuildingExpression { this: CfgBuildingBlockStatement =>
+  protected def buildActualExpressionControlFlow(rreq: ResultRequirement)(implicit builder: CfgBuilder): ExprResult
+
+  final def buildExprControlFlow(rreq: ResultRequirement)(implicit builder: CfgBuilder): ExprResult = {
+    buildActualExpressionControlFlow(rreq)
   }
 
-  final override def buildBlockStatementControlFlow(withResult: Boolean)(implicit builder: CfgBuilder): Unit = {
-    buildCfg(withResult)
+  final override def buildBlockStatementControlFlow(rreq: ResultRequirement)(implicit builder: CfgBuilder): ExprResult = {
+    buildExprControlFlow(rreq)
   }
 }

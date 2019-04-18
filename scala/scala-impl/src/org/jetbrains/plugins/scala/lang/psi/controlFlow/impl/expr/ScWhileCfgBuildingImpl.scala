@@ -2,23 +2,24 @@ package org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr
 
 import org.jetbrains.plugins.scala.lang.psi.api.expr.ScWhile
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.{ExprResult, ResultRequirement}
 
 trait ScWhileCfgBuildingImpl { this: ScWhile =>
-  override def buildActualExpressionControlFlow(withResult: Boolean)(implicit builder: CfgBuilder): Unit = {
+  protected override def buildActualExpressionControlFlow(rreq: ResultRequirement)
+                                                         (implicit builder: CfgBuilder): ExprResult = {
     import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuildingTools._
+    import builder._
 
-    val loopEntry = builder.createLabel("whileLoop")
-    val loopExit = builder.createLabel("whileExit")
+    val loopEntry = createLabel("whileLoop")
+    val loopExit = createLabel("whileExit")
 
-    builder.bindLabel(loopEntry)
-    buildExpressionOrPushAny(condition)
-    builder.jumpIfFalse(loopExit)
-    buildExpressionWithoutResult(expression)
-    builder.jumpTo(loopEntry)
-    builder.bindLabel(loopExit)
+    bindLabel(loopEntry)
+    val cond = buildExprOrAny(condition)
+    jumpIfFalse(cond, loopExit)
+    buildWithoutResult(expression)
+    jumpTo(loopEntry)
+    bindLabel(loopExit)
 
-    if (withResult) {
-      builder.pushUnit()
-    }
+    rreq.satisfyUnit()
   }
 }

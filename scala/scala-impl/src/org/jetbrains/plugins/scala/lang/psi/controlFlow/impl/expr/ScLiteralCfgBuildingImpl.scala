@@ -3,32 +3,22 @@ package org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr
 import org.jetbrains.plugins.scala.dfa.DfValue
 import org.jetbrains.plugins.scala.lang.psi.api.base._
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.{ExprResult, ResultRequirement}
 
 trait ScLiteralCfgBuildingImpl { this: ScLiteral =>
 
-  override def buildActualExpressionControlFlow(withResult: Boolean)(implicit builder: CfgBuilder): Unit = {
+  protected override def buildActualExpressionControlFlow(rreq: ResultRequirement)
+                                                         (implicit builder: CfgBuilder): ExprResult = {
     import ScLiteral._
 
-    Value(this) match {
-      case NullValue =>
-        builder.pushNull()
-
-      case BooleanValue(bool) =>
-        builder.push(DfValue.boolean(bool))
-
-      case IntegerValue(int) =>
-        builder.push(DfValue.int(int))
-
-      case StringValue(string) =>
-        builder.pushString(string)
-
-      case _ =>
-        // Some error. Just push any
-        builder.pushAny()
+    val lit = Value(this) match {
+      case NullValue           => builder.`null`
+      case BooleanValue(value) => builder.boolean(value)
+      case IntegerValue(value) => builder.int(value)
+      case StringValue(value)  => builder.string(value)
+      case _                   => builder.any
     }
 
-    if (!withResult) {
-      builder.noop()
-    }
+    rreq.satisfy(lit, noop = true)
   }
 }

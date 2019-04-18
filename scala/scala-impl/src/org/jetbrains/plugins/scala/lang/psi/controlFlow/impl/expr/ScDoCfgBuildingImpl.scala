@@ -2,20 +2,21 @@ package org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr
 
 import org.jetbrains.plugins.scala.lang.psi.api.expr.ScDo
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.{ExprResult, ResultRequirement}
 
 trait ScDoCfgBuildingImpl { this: ScDo =>
-  override def buildActualExpressionControlFlow(withResult: Boolean)(implicit builder: CfgBuilder): Unit = {
+  protected override def buildActualExpressionControlFlow(rreq: ResultRequirement)
+                                                         (implicit builder: CfgBuilder): ExprResult = {
     import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuildingTools._
+    import builder._
 
-    val loopEntry = builder.createLabel("doLoop")
+    val loopEntry = createLabel("doLoop")
 
-    builder.bindLabel(loopEntry)
-    buildExpressionWithoutResult(body)
-    buildExpressionOrPushAny(condition)
-    builder.jumpIfTrue(loopEntry)
+    bindLabel(loopEntry)
+    buildWithoutResult(body)
+    val cond = buildExprOrAny(condition)
+    jumpIfTrue(cond, loopEntry)
 
-    if (withResult) {
-      builder.pushUnit()
-    }
+    rreq.satisfyUnit()
   }
 }

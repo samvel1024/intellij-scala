@@ -2,26 +2,33 @@ package org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr
 
 import org.jetbrains.plugins.scala.lang.psi.api.expr.ScIf
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.{ExprResult, ResultRequirement}
 
 trait ScIfCfgBuildingImpl { this: ScIf =>
 
-  override def buildActualExpressionControlFlow(withResult: Boolean)(implicit builder: CfgBuilder): Unit = {
+  protected override def buildActualExpressionControlFlow(rreq: ResultRequirement)
+                                                         (implicit builder: CfgBuilder): ExprResult = {
     import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuildingTools._
+    import builder._
 
-    val hasElse = withResult || elseExpression.isDefined
-    val endLabel = builder.createLabel("endIf")
-    val elseLabel = if (hasElse) builder.createLabel("else") else endLabel
+    val (branchRReq, ifResult) = rreq.derivePinned()
 
-    buildExpressionOrPushAny(condition)
-    builder.jumpIfFalse(elseLabel)
-    buildExpressionOrPushAnyIfNeeded(thenExpression, withResult)
+    val hasElse = elseExpression.isDefined || rreq.needsResult
+    val endLabel = createLabel("endIf")
+    val elseLabel = if (hasElse) createLabel("else") else endLabel
+
+    val cond = buildExprOrAny(condition)
+    jumpIfFalse(cond, elseLabel)
+    buildExprOrAny(thenExpression, branchRReq)
     if (hasElse) {
-      builder.jumpTo(endLabel)
-      if (withResult)
-        builder.pop()
-      builder.bindLabel(elseLabel)
-      buildExpressionOrPushUnitIfNeeded(elseExpression, withResult)
+      // jump from the then branch to the end
+      jumpTo(endLabel)
+
+      bindLabel(elseLabel)
+      buildExprOrUnit(elseExpression, branchRReq)
     }
-    builder.bindLabel(endLabel)
+    bindLabel(endLabel)
+
+    ifResult
   }
 }

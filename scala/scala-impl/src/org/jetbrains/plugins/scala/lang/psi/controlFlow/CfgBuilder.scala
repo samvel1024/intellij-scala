@@ -13,9 +13,10 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
   private var nextRegisterId = 0
   private val instructions = mutable.Buffer.empty[cfg.Instruction]
   private val unboundLabels = mutable.Set.empty[BuildLabel]
+  private val usedLabels = mutable.Set.empty[Label]
   private var numLabelsToNextInstr = 0
   private val stringLiteralCache = mutable.Map.empty[String, DfConcreteAnyRef]
-  private val variableCache = mutable.Map.empty[PsiNamedElement, VariableRef]
+  private val variableCache = mutable.Map.empty[PsiNamedElement, DfVariable]
 
   private def indexOfNextInstr: Int = instructions.length
 
@@ -35,44 +36,49 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
     instr
   }
 
-  private def resolveVariable(anchor: PsiNamedElement): VariableRef = {
-    variableCache.getOrElseUpdate(anchor, VariableRef(DfLocalVariable(anchor)))
+  private def newInstr(jumpingInstr: JumpingInstruction): JumpingInstruction = {
+    newInstr(jumpingInstr: cfg.Instruction)
+    use(jumpingInstr.targetLabel.asInstanceOf[BuildLabel])
+    jumpingInstr
   }
 
-  def mov[Sink: ToSinkRef, Source: ToSourceRef](target: Sink, source: Source): this.type = {
-    val targetRef = sinkRefTo(target)
-    val sourceRef = sourceRefTo(source)
+  private def use(label: BuildLabel): Unit = {
+    assert(unboundLabels.contains(label) || usedLabels.contains(label))
+    usedLabels += label
+  }
 
-    if (targetRef != sourceRef) {
-      ???
+  def resolveVariable(anchor: PsiNamedElement): DfVariable =
+    variableCache.getOrElseUpdate(anchor, DfLocalVariable(anchor))
+
+  def mov(target: DfVariable, source: DfEntity): this.type = {
+    if (target != source) {
+      newInstr(new Mov(target, source))
     }
     this
   }
 
-  def sinkRefTo[Sink](sink: Sink)(implicit toSinkRef: ToSinkRef[Sink]): ValueSinkRef =
-    toSinkRef(sink, this)
+  def assign(target: PsiNamedElement, source: DfEntity): this.type =
+    mov(resolveVariable(target), source)
 
-  def sourceRefTo[Source](source: Source)(implicit toSourceRef: ToSourceRef[Source]): ValueSourceRef =
-    toSourceRef(source, this)
-
-  def pin[Source: ToSourceRef](source: Source): RegisterRef = sourceRefTo(source) match {
-    case reg@RegisterRef(_) => reg
-    case sourceRef =>
+  def pin(source: DfEntity): DfEntity = source match {
+    case reg: DfRegister => reg
+    case value: DfValue => value
+    case nonReg =>
       val reg = newRegister()
-      mov(reg, sourceRef)
+      mov(reg, nonReg)
       reg
   }
 
-  def newRegister(): RegisterRef =
-    RegisterRef(new DfRegister(null, newRegisterId()))
+  def newRegister(): DfRegister =
+    new DfRegister(null, newRegisterId())
 
-  def noop(): this.type = {
-    newInstr(new Noop(vpop()))
+  def noop(entity: DfEntity): this.type = {
+    newInstr(new Noop(entity))
     this
   }
 
-  def ret(): this.type = {
-    newInstr(new Ret(vpop()))
+  def ret(entity: DfEntity = DfValue.unit): this.type = {
+    newInstr(new Ret(entity))
     this
   }
 
@@ -86,15 +92,24 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
     this
   }
 
-  def jumpIfTrue(target: BuildLabel): this.type = {
-    newInstr(new JumpIf(vpop(), target))
+  def jumpIfTrue(condition: DfEntity, target: BuildLabel): this.type = {
+    newInstr(new JumpIf(condition, target))
     this
   }
 
-  def jumpIfFalse(target: BuildLabel): this.type = {
-    newInstr(new JumpIfNot(vpop(), target))
+  def jumpIfFalse(condition: DfEntity, target: BuildLabel): this.type = {
+    newInstr(new JumpIfNot(condition, target))
     this
   }
+
+  def `this`: DfEntity = ???
+
+  def any: DfValue = DfValue.any
+  def unit: DfValue = DfValue.unit
+  def `null`: DfValue = ???
+  def boolean(value: Boolean): DfValue = DfValue.boolean(value)
+  def int(value: Int): DfValue = DfValue.int(value)
+  def string(value: String): DfValue = stringLiteralCache.getOrElseUpdate(value, new DfConcreteStringRef(value))
 
   def bindLabel(label: BuildLabel): this.type = {
     if (label.isBound)
@@ -102,11 +117,6 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
 
     if (!unboundLabels.contains(label))
       throw new IllegalArgumentException(s"Label $label belongs to another builder")
-
-    val expectedStack = registersAtLabel.getOrElseUpdate(label, vstack)
-    if (vstack.size != expectedStack.size) {
-      throw new IllegalArgumentException(s"Cannot bind label $label to stack size ${vstack.size}, because label expected stack size ${expectedStack.size}")
-    }
 
     unboundLabels -= label
     numLabelsToNextInstr += 1
@@ -121,7 +131,7 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
   }
 
   def build(): ControlFlowGraph = {
-    val usedUnbound = registersAtLabel.keySet & unboundLabels.toSet[Label]
+    val usedUnbound = usedLabels & unboundLabels.toSet[Label]
     if (usedUnbound.nonEmpty) {
       throw new IllegalStateException(s"Cannot build cfg with ${usedUnbound.size} unbound labels: ${usedUnbound.mkString(", ")}")
     }
@@ -161,50 +171,6 @@ object CfgBuilder {
 
     def isBound: Boolean = {
       _targetIndex >= 0
-    }
-  }
-
-  sealed abstract class ValueSourceRef {
-    def discard(): Unit
-  }
-
-  case class EntityRef(value: DfValue) extends ValueSourceRef {
-    override def discard(): Unit = ()
-  }
-
-  sealed abstract class ValueSinkRef extends ValueSourceRef
-
-  case class RegisterRef(register: DfRegister) extends ValueSinkRef {
-    override def discard(): Unit = ???
-  }
-
-  case class VariableRef(variable: DfVariable) extends ValueSinkRef {
-    override def discard(): Unit = ()
-  }
-
-  sealed abstract class ToSourceRef[-From] {
-    def apply(from: From, builder: CfgBuilder): ValueSourceRef
-  }
-
-  object ToSourceRef {
-    implicit case object RefToRef extends ToSourceRef[ValueSourceRef] {
-      override def apply(from: ValueSourceRef, builder: CfgBuilder): ValueSourceRef = from
-    }
-  }
-
-  sealed abstract class ToSinkRef[-From] {
-    def apply(from: From, builder: CfgBuilder): ValueSinkRef
-  }
-
-  object ToSinkRef {
-    implicit case object RefToRef extends ToSinkRef[ValueSinkRef] {
-      override def apply(from: ValueSinkRef, builder: CfgBuilder): ValueSinkRef = from
-    }
-  }
-
-  object Implicits {
-    implicit class RefTraversableOnce(val underlying: TraversableOnce[ValueSourceRef]) extends AnyVal {
-      def discardAll(): Unit = underlying.foreach(_.discard())
     }
   }
 }

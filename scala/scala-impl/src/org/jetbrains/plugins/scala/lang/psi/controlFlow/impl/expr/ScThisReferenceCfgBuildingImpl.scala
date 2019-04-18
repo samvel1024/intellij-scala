@@ -2,15 +2,13 @@ package org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr
 
 import org.jetbrains.plugins.scala.lang.psi.api.expr.ScThisReference
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.{ExprResult, ResultRequirement}
 
 trait ScThisReferenceCfgBuildingImpl { this: ScThisReference =>
 
-  override def buildActualExpressionControlFlow(withResult: Boolean)(implicit builder: CfgBuilder): Unit = {
+  protected override def buildActualExpressionControlFlow(rreq: ResultRequirement)
+                                                         (implicit builder: CfgBuilder): ExprResult = {
 
-    builder.pushThis()
-
-    if (!withResult) {
-      builder.noop()
-    }
+    rreq.satisfy(builder.`this`)
   }
 }

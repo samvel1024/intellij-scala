@@ -2,17 +2,17 @@ package org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr
 
 import org.jetbrains.plugins.scala.lang.psi.api.expr.ScReturn
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.{ExprResult, ResultRequirement}
 
 trait ScReturnCfgBuildingImpl { this: ScReturn =>
 
-  override def buildActualExpressionControlFlow(withResult: Boolean)(implicit builder: CfgBuilder): Unit = {
+  protected override def buildActualExpressionControlFlow(rreq: ResultRequirement)
+                                                         (implicit builder: CfgBuilder): ExprResult = {
     import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuildingTools._
 
-    buildExpressionOrPushUnit(expr)
-    builder.ret()
+    val result = buildExprOrUnit(expr)
+    builder.ret(result.get)
 
-    if (withResult) {
-      builder.pushNothing()
-    }
+    rreq.satisfyNothing()
   }
 }
