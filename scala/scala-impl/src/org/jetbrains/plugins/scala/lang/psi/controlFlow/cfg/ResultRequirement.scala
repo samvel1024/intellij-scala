@@ -2,6 +2,7 @@ package org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg
 
 import org.jetbrains.plugins.scala.dfa.{DfEntity, DfVariable}
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.RequireDirectResult.DirectResult
 
 sealed abstract class ExprResult {
   def get: DfEntity
@@ -76,17 +77,17 @@ final class RequireResultToProvidedSink(sink: DfVariable) extends ResultRequirem
 
 sealed class RequireDirectResult extends ResultRequirement {
   override def satisfy(entity: DfEntity, noop: Boolean)(implicit builder: CfgBuilder): ExprResult = {
-    RequireDirectResult(entity)
+    DirectResult(entity)
   }
 
   override def pin()(implicit builder: CfgBuilder): (DfVariable, ExprResult) = {
     val reg = builder.newRegister()
-    reg -> RequireDirectResult(reg)
+    reg -> DirectResult(reg)
   }
 
   override def derivePinned()(implicit builder: CfgBuilder): (ResultRequirement, ExprResult) = {
     val reg = builder.newRegister()
-    RequireResult(reg) -> RequireDirectResult(reg)
+    RequireResult(reg) -> DirectResult(reg)
   }
 
   override def needsResult: Boolean = true

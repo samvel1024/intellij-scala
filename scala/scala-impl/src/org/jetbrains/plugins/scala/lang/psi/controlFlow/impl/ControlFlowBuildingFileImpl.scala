@@ -1,6 +1,7 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow.impl
 
 import org.jetbrains.plugins.scala.extensions._
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.RequireNoResult
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.{CfgBuilder, CfgBuildingBlockStatement, ControlFlowGraph}
 import org.jetbrains.plugins.scala.lang.psi.impl.ScalaFileImpl
 
@@ -10,7 +11,7 @@ trait ControlFlowBuildingFileImpl { this: ScalaFileImpl =>
 
     this.children
       .collect { case stmt: CfgBuildingBlockStatement => stmt }
-      .foreach(_.buildBlockStatementControlFlow(withResult = false))
+      .foreach(_.buildBlockStatementControlFlow(RequireNoResult))
 
     builder.end()
     builder.build()
