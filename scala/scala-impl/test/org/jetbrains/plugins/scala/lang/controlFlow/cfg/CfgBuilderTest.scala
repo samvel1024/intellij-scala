@@ -16,6 +16,7 @@ class CfgBuilderTest extends SimpleTestCase with ExceptionAssert {
     }
   }
 
+  /*
   def test_StackUnderflow(): Unit = {
     val builder = new CfgBuilder
 
@@ -26,7 +27,7 @@ class CfgBuilderTest extends SimpleTestCase with ExceptionAssert {
     assertException[AssertionError] {
       builder.dup()
     }
-  }
+  }*/
 
   def test_DifferentBuildersLabels(): Unit = {
     val builderA = new CfgBuilder
@@ -47,7 +48,6 @@ class CfgBuilderTest extends SimpleTestCase with ExceptionAssert {
 
     builder
       .jumpTo(label)
-      .pushAny()
       .ret()
 
     assertExceptionMessage[IllegalStateException](s"Cannot build cfg with 1 unbound labels: $label") {
@@ -87,7 +87,7 @@ class CfgBuilderTest extends SimpleTestCase with ExceptionAssert {
 
     builder
       .bindLabel(label)
-      .pushAny()
+        .noop(builder.any)
 
     assertExceptionMessage[IllegalArgumentException]("Cannot bind bound label .LonlyOnce[0]") {
       builder.bindLabel(label)
@@ -101,7 +101,7 @@ class CfgBuilderTest extends SimpleTestCase with ExceptionAssert {
 
     builder
       .jumpTo(label)
-      .pushAny()
+      .noop(builder.any)
 
     assertExceptionMessage[IllegalArgumentException]("Cannot bind label .Llater[<unbound>] to stack size 1, because label expected stack size 0") {
       builder.bindLabel(label)
@@ -115,7 +115,7 @@ class CfgBuilderTest extends SimpleTestCase with ExceptionAssert {
 
     builder
       .bindLabel(label)
-      .pushAny()
+      .noop(builder.any)
 
     assertExceptionMessage[IllegalStateException]("When jumping to label .Lbegin[0], stack is different") {
       builder.jumpTo(label)
@@ -128,20 +128,10 @@ class CfgBuilderTest extends SimpleTestCase with ExceptionAssert {
     val label = builder.createLabel("loop")
     builder
       .bindLabel(label)
-      .pushAny()
-      .pop()
+      .noop(builder.any)
       .jumpTo(label)
 
     val cfg = builder.build()
     assertEquals(1, cfg.instructionCount)
-  }
-
-  def test_Dup(): Unit = {
-    val builder = new CfgBuilder
-    builder.pushAny()
-
-    assertExceptionMessage[IllegalArgumentException]("Tried to duplicate negative times, which probably indicates an error") {
-      builder.dup(-1)
-    }
   }
 }

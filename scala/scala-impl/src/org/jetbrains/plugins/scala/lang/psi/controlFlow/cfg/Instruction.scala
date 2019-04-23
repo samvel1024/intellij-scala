@@ -5,6 +5,7 @@ import org.jetbrains.plugins.scala.lang.psi.controlFlow.{AbstractInstructionVisi
 abstract class Instruction {
   private var _index: Int = -1
   private var _graph: ControlFlowGraph = _
+  private var _labels: Array[Label] = _
 
   def index: Int = {
     assert(_index >= 0)
@@ -20,6 +21,11 @@ abstract class Instruction {
   def graph: ControlFlowGraph = {
     assert(_graph != null)
     _graph
+  }
+
+  def labels: Seq[Label] = {
+    assert(_labels != null)
+    _labels
   }
 
   def asmString: String
@@ -39,10 +45,12 @@ object Instruction {
     val isJump: Boolean = false
   )
 
-  private[controlFlow] def finalizeInstruction(instr: Instruction, graph: ControlFlowGraph): Unit = {
+  private[controlFlow] def finalizeInstruction(instr: Instruction, graph: ControlFlowGraph, labels: Array[Label]): Unit = {
     assert(instr._index >= 0)
     assert(instr._graph == null)
+    assert(instr._labels == null)
 
     instr._graph = graph
+    instr._labels = labels
   }
 }

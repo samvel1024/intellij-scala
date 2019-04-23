@@ -1,5 +1,7 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow
 
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.JumpingInstruction
+
 class ControlFlowGraph private (val instructions: Array[cfg.Instruction]) {
   assert(instructions.length > 0)
 
@@ -8,17 +10,42 @@ class ControlFlowGraph private (val instructions: Array[cfg.Instruction]) {
 
   def entryInstruction: cfg.Instruction = instructions.head
 
-  def asmText(lineNumbers: Boolean = true): String = {
+  def asmText(lineNumbers: Boolean = true, labels: Boolean = true, indentation: Boolean = true): String = {
     if (instructions.isEmpty) {
       return "<empty-cfg>"
     }
 
     val numLength = (instructions.length - 1).toString.length
 
-    instructions.zipWithIndex.map {
-      case (instr, line) if lineNumbers => line.toString.padTo(numLength, ' ') + ": " + instr.asmString
-      case (instr, _) => instr.asmString
-    }.mkString("\n")
+    val builder = new StringBuilder
+
+    for ((instr, idx) <- instructions.zipWithIndex) {
+      if (idx > 0)
+        builder.append("\n")
+
+      if (labels && instr.labels.nonEmpty) {
+        for ((label, idx) <- instr.labels.zipWithIndex) {
+          if (idx > 0)
+            builder.append(" ")
+          builder.append(label)
+        }
+        builder.append(":\n")
+      }
+
+      if (lineNumbers) {
+        val line = idx + 1
+        builder.append(line + 1)
+        builder.append(": ")
+      }
+
+      if (indentation && !lineNumbers) {
+        builder.append("  ")
+      }
+
+      builder.append(instr.asmString)
+    }
+
+    builder.toString()
   }
 
   override def toString: String = asmText()
@@ -26,11 +53,21 @@ class ControlFlowGraph private (val instructions: Array[cfg.Instruction]) {
 
 object ControlFlowGraph {
   private[controlFlow] def apply(instructions: Array[cfg.Instruction]): ControlFlowGraph = {
-    val g = new ControlFlowGraph(instructions)
+    val graph = new ControlFlowGraph(instructions)
 
-    for ((instr, idx) <- instructions.zipWithIndex)
-      cfg.Instruction.finalizeInstruction(instr, g)
+    val jumps = instructions
+      .collect { case ji: JumpingInstruction => ji }
 
-    g
+    val labelsOfInstr = jumps
+      .map(_.targetLabel)
+      .groupBy(_.targetIndex)
+      .withDefaultValue(Array.empty)
+
+
+    for ((instr, idx) <- instructions.zipWithIndex) {
+      cfg.Instruction.finalizeInstruction(instr, graph, labelsOfInstr(idx))
+    }
+
+    graph
   }
 }

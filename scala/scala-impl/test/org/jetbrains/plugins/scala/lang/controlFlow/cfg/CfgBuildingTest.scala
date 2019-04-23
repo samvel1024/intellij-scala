@@ -18,7 +18,7 @@ class CfgBuildingTest extends ScalaLightCodeInsightFixtureTestAdapter {
     )
 
     val func = actualFile.asInstanceOf[ScControlFlowOwner]
-    assertEquals(result.trim, func.controlFlowGraph.asmText(lineNumbers = false))
+    assertEquals(result.trim, func.controlFlowGraph.asmText(lineNumbers = false, indentation = false))
   }
 
   def test_unit(): Unit = {
@@ -51,11 +51,12 @@ class CfgBuildingTest extends ScalaLightCodeInsightFixtureTestAdapter {
       """.stripMargin,
       """
         |a = 0
-        |%0 <- a
-        |if! %0 -> .Lelse[5]
+        |if! a -> .Lelse[5]
         |noop "then"
         |jmp .LendIf[6]
+        |.Lelse[5]:
         |noop "else"
+        |.LendIf[6]:
         |end
       """.stripMargin
     )
@@ -65,11 +66,12 @@ class CfgBuildingTest extends ScalaLightCodeInsightFixtureTestAdapter {
         |val a = if (true) "then" else "else"
       """.stripMargin,
       """
-        |if! true -> .Lelse[2]
-        |%0 <- "then"
-        |jmp .LendIf[4]
-        |%0 <- "else"
-        |a = %0
+        |if! true -> .Lelse[4]
+        |a = "then"
+        |jmp .LendIf[5]
+        |.Lelse[4]:
+        |a = "else"
+        |.LendIf[5]:
         |end
       """.stripMargin
     )
@@ -83,8 +85,9 @@ class CfgBuildingTest extends ScalaLightCodeInsightFixtureTestAdapter {
         |}
       """.stripMargin,
       """
-        |if! true -> .LendIf[2]
+        |if! true -> .LendIf[3]
         |noop "then"
+        |.LendIf[3]:
         |end
       """.stripMargin
     )
@@ -94,11 +97,70 @@ class CfgBuildingTest extends ScalaLightCodeInsightFixtureTestAdapter {
         |val a = if (true) "then"
       """.stripMargin,
       """
-        |if! true -> .Lelse[2]
-        |%0 <- "then"
-        |jmp .LendIf[4]
-        |%0 <- unit
-        |a = %0
+        |if! true -> .Lelse[4]
+        |a = "then"
+        |jmp .LendIf[5]
+        |.Lelse[4]:
+        |a = unit
+        |.LendIf[5]:
+        |end
+      """.stripMargin
+    )
+  }
+
+  def test_do_while(): Unit = {
+    check(
+      """
+        |val b = true
+        |do {
+        |  "inner"
+        |} while (b)
+        |"end"
+      """.stripMargin,
+      """
+        |b = true
+        |.LdoLoop[2]:
+        |noop "inner"
+        |if b -> .LdoLoop[2]
+        |noop "end"
+        |end
+      """.stripMargin
+    )
+  }
+
+  def test_while(): Unit = {
+    check(
+      """
+        |val b = true
+        |while (b) {
+        |  "inner"
+        |}
+      """.stripMargin,
+      """
+        |b = true
+        |.LwhileLoop[2]:
+        |if! b -> .LwhileExit[5]
+        |noop "inner"
+        |jmp .LwhileLoop[2]
+        |.LwhileExit[5]:
+        |end
+      """.stripMargin
+    )
+  }
+
+  def test_block(): Unit = {
+    check(
+      """
+        |val a = 1
+        |val c = {
+        |  val b = 2
+        |  b
+        |}
+      """.stripMargin,
+      """
+        |a = 1
+        |b = 2
+        |c = b
         |end
       """.stripMargin
     )

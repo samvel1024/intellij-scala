@@ -13,6 +13,7 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
   private var nextRegisterId = 0
   private val instructions = mutable.Buffer.empty[cfg.Instruction]
   private val unboundLabels = mutable.Set.empty[BuildLabel]
+  private val boundLabels = mutable.Set.empty[BuildLabel]
   private val usedLabels = mutable.Set.empty[Label]
   private var numLabelsToNextInstr = 0
   private val stringLiteralCache = mutable.Map.empty[String, DfConcreteAnyRef]
@@ -43,7 +44,7 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
   }
 
   private def use(label: BuildLabel): Unit = {
-    assert(unboundLabels.contains(label) || usedLabels.contains(label))
+    assert(unboundLabels.contains(label) || boundLabels.contains(label))
     usedLabels += label
   }
 
@@ -119,6 +120,7 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
       throw new IllegalArgumentException(s"Label $label belongs to another builder")
 
     unboundLabels -= label
+    boundLabels += label
     numLabelsToNextInstr += 1
     label._targetIndex = indexOfNextInstr
     this
@@ -154,7 +156,7 @@ object CfgBuilder {
     private[CfgBuilder] var _graph: ControlFlowGraph = _
 
     override def name: String = {
-      val boundTo = if (isBound) targetIndex.toString else "<unbound>"
+      val boundTo = if (isBound) line.toString else "<unbound>"
       val name = if (_name.nonEmpty) _name else "unknown"
       s"$name[$boundTo]"
     }
