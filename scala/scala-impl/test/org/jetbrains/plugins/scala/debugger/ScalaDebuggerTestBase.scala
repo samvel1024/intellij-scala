@@ -12,6 +12,7 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.{LocalFileSystem, VfsUtil}
 import com.intellij.testFramework._
+import org.apache.commons.lang.StringUtils
 import org.jetbrains.plugins.scala.extensions.inWriteAction
 import org.jetbrains.plugins.scala.util.TestUtils
 import org.junit.Assert
@@ -37,6 +38,7 @@ abstract class ScalaDebuggerTestBase extends ScalaCompilerTestBase {
   override def setUp() {
     val testDataValid = testDataProjectIsValid()
     if (!testDataValid) {
+      log("Test data invalid, rebuilding...")
       needMake = true
       val testDataProjectPath = testDataBasePath
       if (testDataProjectPath.exists()) FileUtil.delete(testDataProjectPath)
@@ -195,11 +197,15 @@ abstract class ScalaDebuggerTestBase extends ScalaCompilerTestBase {
         val obj = ois.readObject()
         obj match {
           case cs: Checksums => checksums = cs; true
-          case _ => false
+          case _ =>
+            log(s"Failed to load checksums: ${obj.getClass} is not a ${classOf[Checksums]}")
+            false
         }
       }
       catch {
-        case _: IOException => false
+        case e: IOException =>
+          log(s"Failed to load checksums: ${e.getMessage}")
+          false
       }
       finally ois.close()
     result
@@ -227,17 +233,40 @@ abstract class ScalaDebuggerTestBase extends ScalaCompilerTestBase {
   }
 
   private def fileWithTextExists(file: File, fileText: String): Boolean = {
-    if (!file.exists()) false
+    if (!file.exists()) {
+      log(s"source doesn't exist: $file")
+      false
+    }
     else {
       val oldText = FileUtil.loadFile(file, "UTF-8")
-      oldText.replace("\r", "") == fileText.replace("\r", "")
+      val oldNormalized = oldText.replace("\r", "")
+      val newNormalized = fileText.replace("\r", "")
+      val result = oldNormalized == newNormalized
+      if (!result)
+        log(s"source on disk is different from test: ${file.getName} / '${StringUtils.difference(oldNormalized, newNormalized)}' ")
+      result
     }
   }
 
   private def checkFile(relPath: String): Boolean = {
     val file = new File(testDataBasePath, relPath)
-    file.exists && util.Arrays.equals(checksums.fileToMd5(relPath), md5(file))
+    if (!file.exists()) {
+      log(s"class doesn't exist: $relPath")
+      return false
+    }
+    val expected = checksums.fileToMd5(relPath)
+    val got = md5(file)
+    val result = util.Arrays.equals(expected, got)
+    if (!result)
+      log(s"Wrong md5 for $relPath: expected ${hex(expected)} got ${hex(got)}")
+    result
   }
+
+  private def log(msg: => String): Unit = {
+    println(s"${getTestName(false)}> $msg")
+  }
+
+  private def hex(buf: Array[Byte]): String = buf.map("%02X" format _).mkString
 }
 
 private class Checksums(val fileToMd5: mutable.HashMap[String, Array[Byte]], val scalaVersion: String)
