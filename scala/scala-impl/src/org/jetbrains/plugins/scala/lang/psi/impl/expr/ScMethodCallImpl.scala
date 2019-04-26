@@ -5,6 +5,7 @@ package impl
 package expr
 
 import com.intellij.lang.ASTNode
+import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
 
 /**
@@ -12,6 +13,9 @@ import org.jetbrains.plugins.scala.lang.psi.api.expr._
   *         Date: 06.03.2008
   */
 class ScMethodCallImpl(node: ASTNode) extends MethodInvocationImpl(node) with ScMethodCall {
+  override def thisExpr: Option[ScExpression] =
+    if (isApplyOrUpdateCall) Some(getEffectiveInvokedExpr)
+    else getEffectiveInvokedExpr.asOptionOf[ScReferenceExpression].flatMap(_.qualifier)
 
   def getInvokedExpr: ScExpression = findChildByClassScala(classOf[ScExpression])
 

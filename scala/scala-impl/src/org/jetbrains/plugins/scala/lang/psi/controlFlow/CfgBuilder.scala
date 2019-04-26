@@ -1,8 +1,7 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow
 
-import com.intellij.psi.{PsiElement, PsiNamedElement}
-import org.jetbrains.plugins.scala.dfa.{DfConcreteAnyRef, DfConcreteStringRef, DfEntity, DfLocalVariable, DfRegister, DfValue, DfVariable}
-import org.jetbrains.plugins.scala.lang.psi.api.toplevel.ScNamedElement
+import com.intellij.psi.PsiNamedElement
+import org.jetbrains.plugins.scala.dfa._
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder._
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg._
 import org.jetbrains.plugins.scala.project.ProjectContext
@@ -74,7 +73,9 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
     new DfRegister(null, newRegisterId())
 
   def noop(entity: DfEntity): this.type = {
-    newInstr(new Noop(entity))
+    if (!entity.isInstanceOf[DfRegister]) {
+      newInstr(new Noop(entity))
+    }
     this
   }
 
@@ -85,6 +86,11 @@ class CfgBuilder(implicit val projectContext: ProjectContext) {
 
   def end(): this.type = {
     newInstr(new End)
+    this
+  }
+
+  def call(thisRef: Option[DfEntity], func: Option[PsiNamedElement], ret: Option[DfVariable], params: Seq[DfEntity]): this.type = {
+    newInstr(new Call(thisRef, func, ret, params, false))
     this
   }
 

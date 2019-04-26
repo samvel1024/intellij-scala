@@ -8,6 +8,7 @@ import com.intellij.lang.ASTNode
 import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.lang.psi.api.base.ScLiteral
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr.ScInfixExprCfgBuildingImpl
 import org.jetbrains.plugins.scala.lang.psi.impl.toplevel.synthetic.ScSyntheticFunction
 import org.jetbrains.plugins.scala.lang.psi.types._
 import org.jetbrains.plugins.scala.lang.psi.types.api.designator.ScProjectionType
@@ -16,7 +17,9 @@ import org.jetbrains.plugins.scala.lang.psi.types.api.designator.ScProjectionTyp
   * @author Alexander Podkhalyuzin
   *         Date: 06.03.2008
   */
-class ScInfixExprImpl(node: ASTNode) extends MethodInvocationImpl(node) with ScInfixExpr {
+class ScInfixExprImpl(node: ASTNode)
+  extends MethodInvocationImpl(node)
+    with ScInfixExpr with ScInfixExprCfgBuildingImpl {
 
   import resolve.ScalaResolveResult
   import result._

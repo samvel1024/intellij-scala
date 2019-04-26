@@ -1,5 +1,6 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg
 
+import org.jetbrains.plugins.scala.dfa.{DfRegister, DfVariable}
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.{AbstractInstructionVisitor, ControlFlowGraph}
 
 abstract class Instruction {
@@ -52,5 +53,10 @@ object Instruction {
 
     instr._graph = graph
     instr._labels = labels
+  }
+
+  def asmAssignmentPrefix(v: DfVariable): String = v match {
+    case reg: DfRegister => reg + " <- "
+    case variable => variable + " = "
   }
 }

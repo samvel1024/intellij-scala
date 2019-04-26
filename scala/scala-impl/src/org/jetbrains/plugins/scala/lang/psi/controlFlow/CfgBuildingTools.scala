@@ -1,11 +1,8 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow
 
-import org.jetbrains.plugins.scala.dfa.{DfEntity, DfRegister, DfValue}
-import org.jetbrains.plugins.scala.lang.psi.api.base.patterns.{ScParenthesisedPattern, ScPattern, ScWildcardPattern}
+import org.jetbrains.plugins.scala.dfa.DfEntity
 import org.jetbrains.plugins.scala.lang.psi.api.expr.{ScBlockStatement, ScExpression}
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.{ExprResult, RequireNoResult, RequireResult, ResultRequirement}
-
-import scala.annotation.tailrec
 
 object CfgBuildingTools {
   /*def buildExpressionOrPushAny(exprOpt: Option[ScExpression])
@@ -62,12 +59,4 @@ object CfgBuildingTools {
       stmts.init.foreach(_.buildBlockStatementControlFlow(RequireNoResult))
       stmts.last.buildBlockStatementControlFlow(rreq)
     }
-
-
-  @tailrec
-  final def canIgnorePattern(pattern: ScPattern): Boolean = pattern match {
-    case _: ScWildcardPattern => true
-    case ScParenthesisedPattern(inner) => canIgnorePattern(inner)
-    case _ => false
-  }
 }

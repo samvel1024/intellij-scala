@@ -6,6 +6,7 @@ package expr
 
 import com.intellij.lang.ASTNode
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr.ScParenthesisedExprCfgBuildingImpl
 import org.jetbrains.plugins.scala.lang.psi.types.result._
 import org.jetbrains.plugins.scala.lang.resolve.ScalaResolveResult
 
@@ -14,7 +15,8 @@ import org.jetbrains.plugins.scala.lang.resolve.ScalaResolveResult
   *         Date: 07.03.2008
   *         Time: 9:24:19
   */
-class ScParenthesisedExprImpl(node: ASTNode) extends ScExpressionImplBase(node) with ScParenthesisedExpr {
+class ScParenthesisedExprImpl(node: ASTNode)
+  extends ScExpressionImplBase(node) with ScParenthesisedExpr with ScParenthesisedExprCfgBuildingImpl {
 
   protected override def innerType: TypeResult = {
     innerElement match {

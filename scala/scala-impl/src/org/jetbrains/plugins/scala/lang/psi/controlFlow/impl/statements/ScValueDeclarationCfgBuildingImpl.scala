@@ -5,7 +5,6 @@ import org.jetbrains.plugins.scala.lang.psi.controlFlow.{CfgBuilder, CfgBuilding
 
 trait ScValueDeclarationCfgBuildingImpl extends CfgBuildingBlockStatement {
 
-  override def buildBlockStatementControlFlow(rreq: ResultRequirement)(implicit builder: CfgBuilder): ExprResult = {
-    ???
-  }
+  override def buildBlockStatementControlFlow(rreq: ResultRequirement)(implicit builder: CfgBuilder): ExprResult =
+    rreq.satisfyUnit()
 }

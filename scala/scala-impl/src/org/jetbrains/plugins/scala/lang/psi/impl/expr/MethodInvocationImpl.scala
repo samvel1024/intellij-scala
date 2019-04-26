@@ -11,6 +11,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.expr._
 import org.jetbrains.plugins.scala.lang.psi.api.statements.ScFunction
 import org.jetbrains.plugins.scala.lang.psi.api.statements.ScFunction.CommonNames.Update
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.imports.usages.ImportUsed
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr.MethodInvocationCfgBuildingImpl
 import org.jetbrains.plugins.scala.lang.psi.types.Compatibility._
 import org.jetbrains.plugins.scala.lang.psi.types._
 import org.jetbrains.plugins.scala.lang.psi.types.api.FunctionType
@@ -27,7 +28,8 @@ import org.jetbrains.plugins.scala.macroAnnotations.{Cached, ModCount}
   * Nikolay.Tropin
   * 19-Dec-17
   */
-abstract class MethodInvocationImpl(node: ASTNode) extends ScExpressionImplBase(node) with MethodInvocation {
+abstract class MethodInvocationImpl(node: ASTNode)
+  extends ScExpressionImplBase(node) with MethodInvocation with MethodInvocationCfgBuildingImpl {
 
   import MethodInvocationImpl._
 

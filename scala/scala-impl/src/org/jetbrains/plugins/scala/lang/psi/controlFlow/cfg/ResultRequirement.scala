@@ -4,7 +4,9 @@ import org.jetbrains.plugins.scala.dfa.{DfEntity, DfVariable}
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.RequireDirectResult.DirectResult
 
-sealed abstract class ExprResult {
+import scala.language.implicitConversions
+
+abstract class ExprResult {
   def get: DfEntity
   def pin(implicit builder: CfgBuilder): DfEntity = builder.pin(get)
 }
@@ -13,14 +15,14 @@ object ExprResult {
   implicit def ResultToEntity(result: ExprResult): DfEntity = result.get
 }
 
-sealed abstract class ResultRequirement {
+abstract class ResultRequirement {
   def satisfy(entity: DfEntity, noop: Boolean = false)(implicit builder: CfgBuilder): ExprResult
   def satisfyAny(noop: Boolean = false)(implicit builder: CfgBuilder): ExprResult = satisfy(builder.any, noop)
   def satisfyUnit(noop: Boolean = false)(implicit builder: CfgBuilder): ExprResult = satisfy(builder.unit, noop)
   def satisfyNothing(noop: Boolean = false)(implicit builder: CfgBuilder): ExprResult = satisfy(builder.any, noop)
 
   def pin()(implicit builder: CfgBuilder): (DfVariable, ExprResult)
-  def pinOrDiscard()(implicit builder: CfgBuilder): (DfVariable, ExprResult) = pin()
+  def tryPin()(implicit builder: CfgBuilder): (Option[DfVariable], ExprResult)
 
   def derivePinned()(implicit builder: CfgBuilder): (ResultRequirement, ExprResult)
 
@@ -43,8 +45,8 @@ case object RequireNoResult extends ResultRequirement {
   override def pin()(implicit builder: CfgBuilder): (DfVariable, ExprResult) =
     throw new UnsupportedOperationException("Can't pin result, because no result is demanded.")
 
-  override def pinOrDiscard()(implicit builder: CfgBuilder): (DfVariable, ExprResult) =
-    builder.newRegister() -> NoResult
+  override def tryPin()(implicit builder: CfgBuilder): (Option[DfVariable], ExprResult) =
+    None -> NoResult
 
   override def derivePinned()(implicit builder: CfgBuilder): (ResultRequirement, ExprResult) =
     RequireNoResult -> NoResult
@@ -67,6 +69,9 @@ final class RequireResultToProvidedSink(sink: DfVariable) extends ResultRequirem
   override def pin()(implicit builder: CfgBuilder): (DfVariable, ExprResult) =
     sink -> SinkResult
 
+  override def tryPin()(implicit builder: CfgBuilder): (Option[DfVariable], ExprResult) =
+    Some(sink) -> SinkResult
+
   override def derivePinned()(implicit builder: CfgBuilder): (ResultRequirement, ExprResult) =
     this -> SinkResult
 
@@ -83,6 +88,11 @@ sealed class RequireDirectResult extends ResultRequirement {
   override def pin()(implicit builder: CfgBuilder): (DfVariable, ExprResult) = {
     val reg = builder.newRegister()
     reg -> DirectResult(reg)
+  }
+
+  override def tryPin()(implicit builder: CfgBuilder): (Option[DfVariable], ExprResult) = {
+    val (reg, res) = pin()
+    Some(reg) -> res
   }
 
   override def derivePinned()(implicit builder: CfgBuilder): (ResultRequirement, ExprResult) = {
