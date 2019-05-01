@@ -9,6 +9,10 @@ trait ScReferenceExpressionCfgBuildingImpl { this: ScReferenceExpression =>
   protected override def buildActualExpressionControlFlow(rreq: ResultRequirement)
                                                          (implicit builder: CfgBuilder): ExprResult = {
     this.bind() match {
+      case Some(result) if this.refName != result.name && (result.name == "apply" || result.name == "update") =>
+        val v = builder.resolveVariable(result.parentElement.get)
+        rreq.satisfy(v, noop = true)
+
       case Some(result) =>
         val v = builder.resolveVariable(result.element)
         rreq.satisfy(v, noop = true)

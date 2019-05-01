@@ -7,8 +7,9 @@ import org.jetbrains.plugins.scala.lang.macros.evaluator.{MacroInvocationContext
 import org.jetbrains.plugins.scala.lang.psi.ElementScope
 import org.jetbrains.plugins.scala.lang.psi.ScalaPsiUtil._
 import org.jetbrains.plugins.scala.lang.psi.api.InferUtil._
+import org.jetbrains.plugins.scala.lang.psi.api.base.ScMethodLike
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
-import org.jetbrains.plugins.scala.lang.psi.api.statements.ScFunction
+import org.jetbrains.plugins.scala.lang.psi.api.statements.{ScFun, ScFunction}
 import org.jetbrains.plugins.scala.lang.psi.api.statements.ScFunction.CommonNames.Update
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.imports.usages.ImportUsed
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr.MethodInvocationCfgBuildingImpl
@@ -35,17 +36,19 @@ abstract class MethodInvocationImpl(node: ASTNode)
 
   override protected def innerType: TypeResult = innerTypeExt.typeResult
 
+  def target: Option[ScalaResolveResult] = innerTypeExt.target
+
   override def applicationProblems: Seq[ApplicabilityProblem] = innerTypeExt match {
-    case RegularCase(_, problems, _) => problems
-    case SyntheticCase(RegularCase(_, problems, _), _, _) => problems
+    case RegularCase(_, _, problems, _) => problems
+    case SyntheticCase(_, regularCase, _, _) => regularCase.problems
     case FailureCase(_, problems) if problems.nonEmpty => problems
     case FailureCase(Failure(`noSuitableMethodFoundError`), _) => Seq(DoesNotTakeParameters())
     case _ => Seq.empty
   }
 
   override protected def matchedParametersInner: Seq[(Parameter, ScExpression, ScType)] = innerTypeExt match {
-    case RegularCase(_, _, matched) => matched
-    case SyntheticCase(RegularCase(_, _, matched), _, _) => matched
+    case RegularCase(_, _, _, matched) => matched
+    case SyntheticCase(RegularCase(_, _, _, matched), _, _) => matched
     case _ => Seq.empty
   }
 
@@ -74,11 +77,11 @@ abstract class MethodInvocationImpl(node: ASTNode)
   //this method works for ScInfixExpression and ScMethodCall
   private def tryToGetInnerTypeExt(implicit useExpectedType: Boolean): InvocationData = {
     def updateImplicitParameters(regularCase: RegularCase) = {
-      val RegularCase(inferredType, problems, matched) = regularCase
+      val RegularCase(inferredType, target, problems, matched) = regularCase
       val (newType, arguments) = this.updatedWithImplicitParameters(inferredType, useExpectedType)
       setImplicitArguments(arguments)
 
-      RegularCase(newType, problems, matched)
+      RegularCase(newType, target, problems, matched)
     }
 
     def updateType(`type`: ScType, canThrowSCE: Boolean = false): ScType =
@@ -103,7 +106,7 @@ abstract class MethodInvocationImpl(node: ASTNode)
 
                 val maybeRegularCase = checkApplication(updatedProcessedType, Some(result))
                 val regularCase = maybeRegularCase.getOrElse {
-                  RegularCase(updatedProcessedType, Seq(new DoesNotTakeParameters))
+                  RegularCase(updatedProcessedType, Some(result), Seq(new DoesNotTakeParameters))
                 }
 
                 SyntheticCase(
@@ -122,11 +125,11 @@ abstract class MethodInvocationImpl(node: ASTNode)
     }
   }
 
-  private def tuplizyCase(expressions: Seq[Expression])
+  private def tuplizyCase(expressions: Seq[Expression], maybeResolveResult: Option[ScalaResolveResult])
                          (function: Seq[Expression] => (ScType, ConformanceExtResult)): RegularCase = {
     def asRegularCase(expressions: Seq[Expression]) = {
       val (tp, ConformanceExtResult(problems, _, _, matched)) = function(expressions)
-      RegularCase(tp, problems, matched)
+      RegularCase(tp, maybeResolveResult, problems, matched)
     }
 
     def tupledWithSubstitutedType = tupled(expressions, this)
@@ -144,7 +147,7 @@ abstract class MethodInvocationImpl(node: ASTNode)
                               (implicit useExpectedType: Boolean): Option[RegularCase] = {
     val fromMacroExpansion = maybeResolveResult
       .flatMap(this.checkMacroExpansion)
-      .map(RegularCase(_))
+      .map(RegularCase(_, maybeResolveResult))
     if (fromMacroExpansion.isDefined) return fromMacroExpansion
 
     val maybeTuple = invokedNonValueType match {
@@ -154,6 +157,8 @@ abstract class MethodInvocationImpl(node: ASTNode)
         Some((returnType, parameters, Some(polymorphicType)))
       case ScMethodType(returnType, parameters, _) =>
         Some((returnType, parameters, None))
+      case ty if maybeResolveResult.exists(_.element.is[ScFun, ScFunction]) =>
+        Some((ty, Seq.empty, None))
       case _ => None
     }
 
@@ -167,7 +172,7 @@ abstract class MethodInvocationImpl(node: ASTNode)
             (expressions: Seq[Expression]) => (returnType, checkConformanceExt(checkNames = true, parameters, expressions, checkWithImplicits = true, isShapesResolve = false))
         }
 
-        tuplizyCase(arguments(maybeResolveResult))(function)
+        tuplizyCase(arguments(maybeResolveResult), maybeResolveResult)(function)
     }
   }
 
@@ -285,10 +290,12 @@ object MethodInvocationImpl {
   }
 
   private sealed trait InvocationData {
+    def target: Option[ScalaResolveResult]
     def typeResult: TypeResult
   }
 
   private case class RegularCase(inferredType: ScType,
+                                 target: Option[ScalaResolveResult],
                                  problems: Seq[ApplicabilityProblem] = Seq.empty,
                                  matched: Seq[(Parameter, ScExpression, ScType)] = Seq.empty) extends InvocationData {
 
@@ -299,7 +306,7 @@ object MethodInvocationImpl {
       case (Seq(), matchedParams) =>
         val paramSubstitutor = ScSubstitutor.paramToType(matchedParams.map(_._1), matchedParams.map(_._3))
         val `type` = paramSubstitutor(inferredType)
-        Some(RegularCase(`type`, Seq.empty, matched))
+        Some(RegularCase(`type`, target, Seq.empty, matched))
       case _ => None
     }
   }
@@ -307,10 +314,12 @@ object MethodInvocationImpl {
   private case class SyntheticCase(full: RegularCase,
                                    resolveResult: ScalaResolveResult,
                                    isApplyOrUpdate: Boolean) extends InvocationData {
+    override def target: Option[ScalaResolveResult] = Some(resolveResult)
     override def typeResult: TypeResult = full.typeResult
   }
 
   private case class FailureCase(typeResult: Left[Failure, ScType],
-                                 problems: Seq[ApplicabilityProblem] = Seq.empty) extends InvocationData
-
+                                 problems: Seq[ApplicabilityProblem] = Seq.empty) extends InvocationData {
+    override def target: Option[ScalaResolveResult] = None
+  }
 }

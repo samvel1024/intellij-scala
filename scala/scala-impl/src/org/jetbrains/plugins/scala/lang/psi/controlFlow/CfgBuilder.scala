@@ -2,13 +2,15 @@ package org.jetbrains.plugins.scala.lang.psi.controlFlow
 
 import com.intellij.psi.PsiNamedElement
 import org.jetbrains.plugins.scala.dfa._
+import org.jetbrains.plugins.scala.lang.psi.api.expr.ScUnderScoreSectionUtil.UnderscoreMap
+import org.jetbrains.plugins.scala.lang.psi.api.expr.{ScExpression, ScUnderscoreSection}
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder._
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg._
 import org.jetbrains.plugins.scala.project.ProjectContext
 
 import scala.collection.mutable
 
-class CfgBuilder(implicit val projectContext: ProjectContext) {
+class CfgBuilder(val underscoreExpressions: UnderscoreMap = Map.empty)(implicit val projectContext: ProjectContext) {
   private var nextRegisterId = 0
   private val instructions = mutable.Buffer.empty[cfg.Instruction]
   private val unboundLabels = mutable.Set.empty[BuildLabel]

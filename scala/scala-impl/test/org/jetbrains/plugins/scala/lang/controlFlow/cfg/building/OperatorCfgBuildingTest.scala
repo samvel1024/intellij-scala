@@ -1,16 +1,34 @@
 package org.jetbrains.plugins.scala.lang.controlFlow.cfg.building
 
 class OperatorCfgBuildingTest extends CfgBuildingTestBase {
-  def test_basics(): Unit = {
+  def test_basic_infix(): Unit = {
     check(
       """
         |val a = 0 + 1
-        |val b = !true
-        |val c = (1 toString)
       """.stripMargin,
       """
         |a = call [0](1) +
+        |end
+      """.stripMargin
+    )
+  }
+  def test_basic_prefix(): Unit = {
+    check(
+      """
+        |val b = !true
+      """.stripMargin,
+      """
         |b = call [true]() unary_!
+        |end
+      """.stripMargin
+    )
+  }
+  def test_basic_postfix(): Unit = {
+    check(
+      """
+        |val c = (1 toString)
+      """.stripMargin,
+      """
         |c = call [1]() java.lang.Object.toString
         |end
       """.stripMargin

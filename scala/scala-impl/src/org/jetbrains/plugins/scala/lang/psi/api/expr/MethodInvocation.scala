@@ -21,6 +21,11 @@ trait MethodInvocation extends ScExpression with ScalaPsiElement {
    */
   def thisExpr: Option[ScExpression]
 
+  /*
+   * @return the target of the invocation
+   */
+  def target: Option[ScalaResolveResult]
+
   /**
     * For Infix, Postfix and Prefix expressions
     * it's refernce expression for operation

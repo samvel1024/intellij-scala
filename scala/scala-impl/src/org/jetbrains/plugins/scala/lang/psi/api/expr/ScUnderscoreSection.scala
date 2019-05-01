@@ -6,8 +6,11 @@ package expr
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
-import org.jetbrains.plugins.scala.lang.psi.api.base.ScConstructorInvocation
+import org.jetbrains.plugins.scala.lang.psi.api.base.{ScConstructorInvocation, ScMethodLike}
 import org.jetbrains.plugins.scala.lang.psi.api.expr.ScUnderScoreSectionUtil.isUnderscore
+import org.jetbrains.plugins.scala.extensions._
+import org.jetbrains.plugins.scala.lang.psi.api.toplevel.templates.ScTemplateBody
+import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.ScTypeDefinition
 
 import scala.annotation.tailrec
 
@@ -135,5 +138,20 @@ object ScUnderScoreSectionUtil {
       }
     }
     inner(expr)
+  }
+
+  type UnderscoreMap = Map[ScExpression, Seq[ScUnderscoreSection]]
+
+  def allUnderscoreFunctions(expr: ScalaPsiElement): UnderscoreMap = {
+    expr
+      .depthFirst(e => !e.isInstanceOf[ScTemplateBody] && !e.isInstanceOf[ScMethodLike] && !e.isInstanceOf[ScTypeDefinition])
+      .collect { case under: ScUnderscoreSection => under }
+      .foldLeft(Map.empty: UnderscoreMap) {
+        case (acc, under) =>
+          under.overExpr match {
+            case Some(over) => acc.updated(over, acc.getOrElse(under, Seq.empty) :+ under)
+            case None => acc
+          }
+      }
   }
 }

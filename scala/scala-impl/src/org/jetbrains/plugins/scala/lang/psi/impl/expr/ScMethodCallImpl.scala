@@ -13,9 +13,17 @@ import org.jetbrains.plugins.scala.lang.psi.api.expr._
   *         Date: 06.03.2008
   */
 class ScMethodCallImpl(node: ASTNode) extends MethodInvocationImpl(node) with ScMethodCall {
-  override def thisExpr: Option[ScExpression] =
-    if (isApplyOrUpdateCall) Some(getEffectiveInvokedExpr)
-    else getEffectiveInvokedExpr.asOptionOf[ScReferenceExpression].flatMap(_.qualifier)
+  override def thisExpr: Option[ScExpression] = {
+    getEffectiveInvokedExpr.asOptionOf[ScReferenceExpression].flatMap { invokedExpr =>
+      val refName = invokedExpr.refName
+      invokedExpr.bind() match {
+        case Some(resolved) if refName != resolved.name && (resolved.name == "apply" || resolved.name == "update") =>
+          Some(invokedExpr)
+        case _ =>
+          invokedExpr.qualifier
+      }
+    }
+  }
 
   def getInvokedExpr: ScExpression = findChildByClassScala(classOf[ScExpression])
 

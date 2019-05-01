@@ -206,4 +206,67 @@ class InvocationCfgBuildingTest extends CfgBuildingTestBase {
       """.stripMargin
     )
   }
+
+  def test_explicit_apply(): Unit = {
+    check(
+      """
+        |object Test {
+        |  def apply(aa: Int): Unit = ()
+        |}
+        |Test(99)
+      """.stripMargin,
+      """
+        |%0 <- Test$
+        |call [%0](99) Test$.apply
+        |end
+      """.stripMargin
+    )
+  }
+
+  def test_explicit_synthetic_apply(): Unit = {
+    check(
+      """
+        |case class Test(aa: Int)
+        |
+        |Test.apply(99)
+      """.stripMargin,
+      """
+        |%0 <- Test$
+        |call [%0](99) Test$.apply
+        |end
+      """.stripMargin
+    )
+  }
+
+  def test_update(): Unit = {
+    check(
+      """
+        |object Test {
+        |  def update(aa: Int, s: String): Unit = ()
+        |}
+        |Test(11) = ""
+      """.stripMargin,
+      """
+        |%0 <- Test$
+        |call [%0](11, "") Test$.update
+        |end
+      """.stripMargin
+    )
+  }
+
+  def test_explicit_update(): Unit = {
+    check(
+      """
+        |object Test {
+        |  def update(aa: Int, s: String): Unit = ()
+        |}
+        |Test.update(11, "")
+      """.stripMargin,
+      """
+        |%0 <- Test$
+        |call [%0](11, "") Test$.update
+        |end
+      """.stripMargin
+    )
+  }
 }

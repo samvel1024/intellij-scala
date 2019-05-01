@@ -1,6 +1,7 @@
 package org.jetbrains.plugins.scala.dfa
 
 import com.intellij.psi.{PsiElement, PsiNamedElement}
+import org.jetbrains.plugins.scala.lang.psi.api.expr.{ScExpression, ScFunctionExpr}
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.ScNamedElement
 import org.jetbrains.plugins.scala.lang.psi.types.ScType
 import org.jetbrains.plugins.scala.project.ProjectContext
@@ -53,6 +54,10 @@ class DfConcreteAnyRef extends DfConcreteValue
 
 class DfConcreteStringRef(value: String) extends DfConcreteAnyRef {
   override def toString: String = '\"' + value + '\"'
+}
+
+class DfConcreteLambdaRef(lambda: ScExpression, paramTypes: Seq[ScType]) extends DfConcreteAnyRef {
+  override def toString: String = "lambda(" + paramTypes.map(_.presentableText).mkString(", ") + ")"
 }
 
 sealed abstract class DfConcreteAnyVal extends DfValue {
