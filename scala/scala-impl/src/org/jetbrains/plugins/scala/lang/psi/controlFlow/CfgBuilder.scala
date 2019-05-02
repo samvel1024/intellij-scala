@@ -1,6 +1,6 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow
 
-import com.intellij.psi.PsiNamedElement
+import com.intellij.psi.{PsiElement, PsiNamedElement}
 import org.jetbrains.plugins.scala.dfa._
 import org.jetbrains.plugins.scala.lang.psi.api.expr.ScUnderScoreSectionUtil.UnderscoreMap
 import org.jetbrains.plugins.scala.lang.psi.api.expr.{ScExpression, ScUnderscoreSection}
@@ -10,7 +10,20 @@ import org.jetbrains.plugins.scala.project.ProjectContext
 
 import scala.collection.mutable
 
-class CfgBuilder(val underscoreExpressions: UnderscoreMap = Map.empty)(implicit val projectContext: ProjectContext) {
+class CfgBuilder private(val underscoreExpressions: Map[ScExpression, Seq[DfConcreteLambdaRef.Parameter]],
+                         implicit val projectContext: ProjectContext,
+                         _make_different_from_alternative_constructor: Any = None) {
+  def this()(implicit projectContext: ProjectContext) {
+    this(Map.empty, projectContext)
+  }
+
+  def this(_underscoreExpressions: UnderscoreMap)(implicit projectContext: ProjectContext) {
+    this(_underscoreExpressions.mapValues(_.zipWithIndex.map((underscoreToParameter _).tupled)), projectContext)
+  }
+
+  val resolveUnderscore: Map[PsiElement, DfConcreteLambdaRef.Parameter] =
+    underscoreExpressions.values.flatten.map(p => p.anchor -> p).toMap
+
   private var nextRegisterId = 0
   private val instructions = mutable.Buffer.empty[cfg.Instruction]
   private val unboundLabels = mutable.Set.empty[BuildLabel]
@@ -18,7 +31,7 @@ class CfgBuilder(val underscoreExpressions: UnderscoreMap = Map.empty)(implicit 
   private val usedLabels = mutable.Set.empty[Label]
   private var numLabelsToNextInstr = 0
   private val stringLiteralCache = mutable.Map.empty[String, DfConcreteAnyRef]
-  private val variableCache = mutable.Map.empty[PsiNamedElement, DfVariable]
+  private val variableCache = mutable.Map.empty[PsiElement, DfVariable]
 
   private def indexOfNextInstr: Int = instructions.length
 
@@ -50,7 +63,10 @@ class CfgBuilder(val underscoreExpressions: UnderscoreMap = Map.empty)(implicit 
   }
 
   def resolveVariable(anchor: PsiNamedElement): DfVariable =
-    variableCache.getOrElseUpdate(anchor, DfLocalVariable(anchor))
+    resolveVariable(anchor, anchor.getName)
+
+  def resolveVariable(anchor: PsiElement, name: String): DfVariable =
+    variableCache.getOrElseUpdate(anchor, DfLocalVariable(anchor, name))
 
   def mov(target: DfVariable, source: DfEntity): this.type = {
     if (target != source) {
@@ -140,6 +156,8 @@ class CfgBuilder(val underscoreExpressions: UnderscoreMap = Map.empty)(implicit 
     label
   }
 
+  def createSubBuilder(): CfgBuilder = new CfgBuilder(underscoreExpressions, projectContext)
+
   def build(): ControlFlowGraph = {
     val usedUnbound = usedLabels & unboundLabels.toSet[Label]
     if (usedUnbound.nonEmpty) {
@@ -183,4 +201,7 @@ object CfgBuilder {
       _targetIndex >= 0
     }
   }
+
+  private def underscoreToParameter(underscore: ScUnderscoreSection, idx: Int): DfConcreteLambdaRef.Parameter =
+    new DfConcreteLambdaRef.Parameter(DfLocalVariable(underscore, "p$" + idx), underscore.`type`().getOrAny)
 }

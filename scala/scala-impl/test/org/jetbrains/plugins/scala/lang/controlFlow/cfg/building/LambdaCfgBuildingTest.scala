@@ -9,8 +9,12 @@ class LambdaCfgBuildingTest extends CfgBuildingTestBase {
       """.stripMargin,
       """
         |f = lambda()
-        |call () scala.Function0.apply
+        |%0 <- f
+        |call [%0]() scala.Function0.apply
         |end
+        |
+        |# lambda()
+        |ret unit
       """.stripMargin
     )
   }
@@ -22,9 +26,15 @@ class LambdaCfgBuildingTest extends CfgBuildingTestBase {
         |f(5)
       """.stripMargin,
       """
-        |f = lambda(Int)
-        |call (5) scala.Function1.apply
+        |f = lambda(p$0: Int)
+        |%0 <- f
+        |call [%0](5) scala.Function1.apply
         |end
+        |
+        |# lambda(p$0: Int)
+        |%1 <- p$0
+        |%0 <- call [%1](10) +
+        |ret %0
       """.stripMargin
     )
   }

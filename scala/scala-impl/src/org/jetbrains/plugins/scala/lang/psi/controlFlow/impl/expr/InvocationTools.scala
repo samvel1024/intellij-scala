@@ -2,24 +2,24 @@ package org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr
 
 import com.intellij.psi.PsiNamedElement
 import org.jetbrains.plugins.scala.dfa.DfEntity
+import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.lang.psi.api.expr.ScExpression
 import org.jetbrains.plugins.scala.lang.psi.api.statements.params.ScParameter
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.{ExprResult, RequireResult, ResultRequirement}
 import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.Parameter
 
-import org.jetbrains.plugins.scala.extensions._
-
 object InvocationTools {
   /*
     TODO: We have the following cases when we encounter a method invocation
     - [x] calls to functions
     - [x] calls to methods (=> need thisref)
-    - [ ] calls to function objects
+    - [x] calls to function objects
     - [x] calls to apply
     - [x] calls to update
     - [ ] calls with assignment (i.e. +=, -=, ::=)
     - [x] calls that have changed precedence (::, everything with : as last char)
+    - [ ] imported member methods
     - [ ] with or without implicits
     - [ ] with or without generics
     - [ ] multiple parameter clauses

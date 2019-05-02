@@ -1,8 +1,8 @@
 package org.jetbrains.plugins.scala.dfa
 
 import com.intellij.psi.{PsiElement, PsiNamedElement}
-import org.jetbrains.plugins.scala.lang.psi.api.expr.{ScExpression, ScFunctionExpr}
-import org.jetbrains.plugins.scala.lang.psi.api.toplevel.ScNamedElement
+import org.jetbrains.plugins.scala.lang.psi.api.expr.ScExpression
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.ControlFlowGraph
 import org.jetbrains.plugins.scala.lang.psi.types.ScType
 import org.jetbrains.plugins.scala.project.ProjectContext
 
@@ -19,9 +19,7 @@ sealed abstract class DfVariable extends DfEntity {
 class DfRegister(override val anchor: PsiElement, val id: Int) extends DfVariable {
   override def name: String = "%" + Integer.toUnsignedString(id, 36)
 }
-case class DfLocalVariable(override val anchor: PsiNamedElement) extends DfVariable {
-  override def name: String = anchor.getName
-}
+case class DfLocalVariable(override val anchor: PsiElement, override val name: String) extends DfVariable
 case class DfMemberVariable(override val anchor: PsiNamedElement) extends DfVariable {
   override def name: String = anchor.getName
 }
@@ -56,8 +54,19 @@ class DfConcreteStringRef(value: String) extends DfConcreteAnyRef {
   override def toString: String = '\"' + value + '\"'
 }
 
-class DfConcreteLambdaRef(lambda: ScExpression, paramTypes: Seq[ScType]) extends DfConcreteAnyRef {
-  override def toString: String = "lambda(" + paramTypes.map(_.presentableText).mkString(", ") + ")"
+class DfConcreteLambdaRef(val lambda: ScExpression,
+                          val params: Seq[DfConcreteLambdaRef.Parameter],
+                          val cfg: ControlFlowGraph) extends DfConcreteAnyRef {
+  override def toString: String =
+    s"lambda(${params.mkString(", ")})"
+}
+
+object DfConcreteLambdaRef {
+  class Parameter(val variable: DfVariable, val ty: ScType) {
+    def anchor: PsiElement = variable.anchor
+    def name: String = variable.name
+    override def toString: String = s"$name: ${ty.presentableText}"
+  }
 }
 
 sealed abstract class DfConcreteAnyVal extends DfValue {

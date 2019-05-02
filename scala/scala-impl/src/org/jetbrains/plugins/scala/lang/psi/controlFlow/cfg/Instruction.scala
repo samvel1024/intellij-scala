@@ -1,6 +1,6 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg
 
-import org.jetbrains.plugins.scala.dfa.{DfRegister, DfVariable}
+import org.jetbrains.plugins.scala.dfa.{DfEntity, DfRegister, DfVariable}
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.{AbstractInstructionVisitor, ControlFlowGraph}
 
 abstract class Instruction {
@@ -28,6 +28,10 @@ abstract class Instruction {
     assert(_labels != null)
     _labels
   }
+
+  def sourceEntities: Seq[DfEntity]
+  def variables: Seq[DfVariable]
+  def entities: Seq[DfEntity] = sourceEntities ++ variables
 
   def asmString: String
   def asmLine: String = s"$index: $asmString"

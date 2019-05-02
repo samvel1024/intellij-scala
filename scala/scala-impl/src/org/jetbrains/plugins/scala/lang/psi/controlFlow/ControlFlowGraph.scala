@@ -1,8 +1,9 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow
 
+import org.jetbrains.plugins.scala.dfa.DfConcreteLambdaRef
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.JumpingInstruction
 
-class ControlFlowGraph private (val instructions: Array[cfg.Instruction]) {
+class ControlFlowGraph private (val instructions: Array[cfg.Instruction], val lambdas: Seq[DfConcreteLambdaRef]) {
   assert(instructions.length > 0)
 
   def instructionCount: Int = instructions.length
@@ -45,6 +46,13 @@ class ControlFlowGraph private (val instructions: Array[cfg.Instruction]) {
       builder.append(instr.asmString)
     }
 
+    for (lambda <- lambdas) {
+      builder.append("\n\n# ")
+      builder.append(lambda)
+      builder.append("\n")
+      builder.append(lambda.cfg.asmText(lineNumbers, labels, indentation))
+    }
+
     builder.toString()
   }
 
@@ -53,7 +61,10 @@ class ControlFlowGraph private (val instructions: Array[cfg.Instruction]) {
 
 object ControlFlowGraph {
   private[controlFlow] def apply(instructions: Array[cfg.Instruction]): ControlFlowGraph = {
-    val graph = new ControlFlowGraph(instructions)
+    val lambdas =
+      instructions.flatMap(_.sourceEntities.collect { case lambda: DfConcreteLambdaRef => lambda })
+
+    val graph = new ControlFlowGraph(instructions, lambdas)
 
     val jumps = instructions
       .collect { case ji: JumpingInstruction => ji }

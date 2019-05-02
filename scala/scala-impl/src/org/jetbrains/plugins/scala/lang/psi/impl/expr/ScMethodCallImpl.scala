@@ -7,6 +7,8 @@ package expr
 import com.intellij.lang.ASTNode
 import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
+import org.jetbrains.plugins.scala.lang.psi.impl.expr.ScMethodCallImpl._
+import org.jetbrains.plugins.scala.lang.resolve.ScalaResolveResult
 
 /**
   * @author Alexander Podkhalyuzin
@@ -17,7 +19,8 @@ class ScMethodCallImpl(node: ASTNode) extends MethodInvocationImpl(node) with Sc
     getEffectiveInvokedExpr.asOptionOf[ScReferenceExpression].flatMap { invokedExpr =>
       val refName = invokedExpr.refName
       invokedExpr.bind() match {
-        case Some(resolved) if refName != resolved.name && (resolved.name == "apply" || resolved.name == "update") =>
+        case Some(resolved) if isApplyOrUpdateOnNoFunctionObject(refName, resolved) ||
+                                isApplyToFunctionObject(resolved) =>
           Some(invokedExpr)
         case _ =>
           invokedExpr.qualifier
@@ -37,4 +40,12 @@ class ScMethodCallImpl(node: ASTNode) extends MethodInvocationImpl(node) with Sc
   }
 
   override def toString: String = "MethodCall"
+}
+
+object ScMethodCallImpl {
+  private def isApplyOrUpdateOnNoFunctionObject(refName: String, resolved: ScalaResolveResult): Boolean =
+    refName != resolved.name && (resolved.name == "apply" || resolved.name == "update")
+
+  private def isApplyToFunctionObject(resolveResult: ScalaResolveResult): Boolean =
+    resolveResult.innerResolveResult.exists(_.element.getName == "apply")
 }

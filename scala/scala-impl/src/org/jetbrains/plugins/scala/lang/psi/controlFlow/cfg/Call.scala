@@ -11,6 +11,10 @@ class Call private[controlFlow](val thisRef: Option[DfEntity],
                                 val params: Seq[DfEntity],
                                 val dyn: Boolean) extends Instruction {
 
+
+  override def sourceEntities: Seq[DfEntity] = params
+  override def variables: Seq[DfVariable] = ret.toSeq
+
   override def asmString: String = {
     val builder = new StringBuilder
 

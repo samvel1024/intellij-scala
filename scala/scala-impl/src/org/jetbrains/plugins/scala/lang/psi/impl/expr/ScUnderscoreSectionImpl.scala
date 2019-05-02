@@ -11,6 +11,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.base.patterns.ScBindingPattern
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
 import org.jetbrains.plugins.scala.lang.psi.api.statements.params.{ScClassParameter, ScParameter}
 import org.jetbrains.plugins.scala.lang.psi.api.statements.{ScFunction, ScValue, ScVariable}
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr.ScUnderscoreSectionCfgBuildingImpl
 import org.jetbrains.plugins.scala.lang.psi.types._
 import org.jetbrains.plugins.scala.lang.psi.types.api.FunctionType
 import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.{ScMethodType, ScTypePolymorphicType}
@@ -22,7 +23,10 @@ import org.jetbrains.plugins.scala.util.SAMUtil
  * @author Alexander Podkhalyuzin, ilyas
  */
 
-class ScUnderscoreSectionImpl(node: ASTNode) extends ScExpressionImplBase(node) with ScUnderscoreSection {
+class ScUnderscoreSectionImpl(node: ASTNode)
+  extends ScExpressionImplBase(node)
+    with ScUnderscoreSection with ScUnderscoreSectionCfgBuildingImpl{
+
   protected override def innerType: TypeResult = {
     bindingExpr match {
       case Some(ref: ScReferenceExpression) =>
