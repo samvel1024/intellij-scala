@@ -254,6 +254,22 @@ class InvocationCfgBuildingTest extends CfgBuildingTestBase {
     )
   }
 
+  def test_update_with_multiple_args(): Unit = {
+    check(
+      """
+        |object Test {
+        |  def update(aa: Int, bb: Int, s: String): Unit = ()
+        |}
+        |Test(11, 21) = ""
+      """.stripMargin,
+      """
+        |%0 <- Test$
+        |call [%0](11, 21, "") Test$.update
+        |end
+      """.stripMargin
+    )
+  }
+
   def test_explicit_update(): Unit = {
     check(
       """

@@ -146,4 +146,21 @@ class ExprCfgBuildingTest extends CfgBuildingTestBase {
       """.stripMargin
     )
   }
+
+  /*
+  todo: implement this
+  def test_property_access(): Unit = {
+    check(
+      """
+        |object Test {
+        |  val test = 0
+        |}
+        |val a = Test.test
+      """.stripMargin,
+      """
+        |a <- read [Test] test
+        |end
+      """.stripMargin
+    )
+  }*/
 }

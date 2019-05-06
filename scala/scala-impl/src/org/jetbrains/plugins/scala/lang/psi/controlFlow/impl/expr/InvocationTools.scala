@@ -17,7 +17,8 @@ object InvocationTools {
     - [x] calls to function objects
     - [x] calls to apply
     - [x] calls to update
-    - [ ] calls with assignment (i.e. +=, -=, ::=)
+    - [~] calls with assignment (i.e. +=, -=, ::=)
+    - [ ] property updates (a.prop = 33 -> a.prop_=(33))
     - [x] calls that have changed precedence (::, everything with : as last char)
     - [ ] imported member methods
     - [ ] with or without implicits
@@ -33,12 +34,11 @@ object InvocationTools {
   case class InvocationInfo(thisExpr: Option[ScExpression],
                             funcRef: Option[PsiNamedElement],
                             params: Seq[(ScExpression, Parameter)]) {
-    def build(rreq: ResultRequirement)(implicit builder: CfgBuilder): ExprResult = {
+    def build(rreq: ResultRequirement)(implicit builder: CfgBuilder): ExprResult =
+      buildWithoutThis(rreq, buildThisRef())
 
+    def buildWithoutThis(rreq: ResultRequirement, thisRef: Option[DfEntity])(implicit builder: CfgBuilder): ExprResult = {
       val (ret, result) = rreq.tryPin()
-      val thisRef = buildThisRef()
-
-
       val paramRegs = params.sortBy(ArgumentSorting.exprPosition).map {
         case (expr, param) =>
           val reg = expr.buildExprControlFlow(RequireResult).pin
@@ -71,7 +71,7 @@ object InvocationTools {
       result
     }
 
-    private def buildThisRef()(implicit builder: CfgBuilder): Option[DfEntity] =
+    def buildThisRef()(implicit builder: CfgBuilder): Option[DfEntity] =
       this.thisExpr.map(_.buildExprControlFlow(RequireResult).pin)
   }
 

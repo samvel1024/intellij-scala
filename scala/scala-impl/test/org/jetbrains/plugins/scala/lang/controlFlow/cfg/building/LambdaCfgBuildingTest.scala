@@ -32,9 +32,9 @@ class LambdaCfgBuildingTest extends CfgBuildingTestBase {
         |end
         |
         |# lambda(p$0: Int)
-        |%1 <- p$0
-        |%0 <- call [%1](10) +
-        |ret %0
+        |%0 <- p$0
+        |%1 <- call [%0](10) +
+        |ret %1
       """.stripMargin
     )
   }

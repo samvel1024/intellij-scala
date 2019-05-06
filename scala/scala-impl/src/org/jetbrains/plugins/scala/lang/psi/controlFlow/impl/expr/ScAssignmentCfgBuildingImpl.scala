@@ -11,6 +11,7 @@ trait ScAssignmentCfgBuildingImpl { this: ScAssignment =>
                                                          (implicit builder: CfgBuilder): ExprResult = {
     leftExpression match {
       case invok: ScMethodCall =>
+        // call to update
         val invocationInfo = InvocationInfo(
           Some(invok.getEffectiveInvokedExpr),
           invok.target.map(_.element),

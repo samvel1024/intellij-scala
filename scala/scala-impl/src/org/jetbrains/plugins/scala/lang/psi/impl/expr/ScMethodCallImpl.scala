@@ -7,6 +7,7 @@ package expr
 import com.intellij.lang.ASTNode
 import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr.ScMethodCallCfgBuildingImpl
 import org.jetbrains.plugins.scala.lang.psi.impl.expr.ScMethodCallImpl._
 import org.jetbrains.plugins.scala.lang.resolve.ScalaResolveResult
 
@@ -14,7 +15,9 @@ import org.jetbrains.plugins.scala.lang.resolve.ScalaResolveResult
   * @author Alexander Podkhalyuzin
   *         Date: 06.03.2008
   */
-class ScMethodCallImpl(node: ASTNode) extends MethodInvocationImpl(node) with ScMethodCall {
+class ScMethodCallImpl(node: ASTNode)
+  extends MethodInvocationImpl(node)
+    with ScMethodCall with ScMethodCallCfgBuildingImpl {
   override def thisExpr: Option[ScExpression] = {
     getEffectiveInvokedExpr.asOptionOf[ScReferenceExpression].flatMap { invokedExpr =>
       val refName = invokedExpr.refName
@@ -27,6 +30,7 @@ class ScMethodCallImpl(node: ASTNode) extends MethodInvocationImpl(node) with Sc
       }
     }
   }
+
 
   def getInvokedExpr: ScExpression = findChildByClassScala(classOf[ScExpression])
 
