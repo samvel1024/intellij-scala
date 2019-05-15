@@ -40,7 +40,7 @@ abstract class MethodInvocationImpl(node: ASTNode)
 
   override def applicationProblems: Seq[ApplicabilityProblem] = innerTypeExt match {
     case RegularCase(_, _, problems, _) => problems
-    case SyntheticCase(_, regularCase, _, _) => regularCase.problems
+    case SyntheticCase(regularCase, _, _) => regularCase.problems
     case FailureCase(_, problems) if problems.nonEmpty => problems
     case FailureCase(Failure(`noSuitableMethodFoundError`), _) => Seq(DoesNotTakeParameters())
     case _ => Seq.empty
