@@ -192,7 +192,7 @@ class ScalaResolveResult(val element: PsiNamedElement,
         else if (q == placePackageName) OTHER_MEMBERS
         else PACKAGE_LOCAL
       }
-      if (importsUsed.size == 0) {
+      if (importsUsed.isEmpty) {
         ScalaPsiUtil.nameContext(getActualElement) match {
           case _: ScSyntheticClass => return SCALA //like scala.Int
           case obj: ScObject if obj.isPackageObject =>
@@ -203,7 +203,7 @@ class ScalaResolveResult(val element: PsiNamedElement,
             return getPackagePrecedence(qualifier)
           case clazz: PsiClass =>
             return getClazzPrecedence(clazz)
-          case (_: ScBindingPattern | _: PsiMember) =>
+          case _: ScBindingPattern | _: PsiMember =>
             val clazzStub = ScalaPsiUtil.getContextOfType(getActualElement, false, classOf[PsiClass])
             val clazz: PsiClass = clazzStub match {
               case clazz: PsiClass => clazz
@@ -233,7 +233,7 @@ class ScalaResolveResult(val element: PsiNamedElement,
         return OTHER_MEMBERS
       }
       val importsUsedSeq = importsUsed.toSeq
-      val importUsed: ImportUsed = importsUsedSeq.apply(importsUsedSeq.length - 1)
+      val importUsed: ImportUsed = importsUsedSeq.last
       // TODO this conflates imported functions and imported implicit views. ScalaResolveResult should really store
       //      these separately.
       importUsed match {
@@ -269,6 +269,14 @@ class ScalaResolveResult(val element: PsiNamedElement,
       precedence = getPrecedenceInner
     }
     precedence
+  }
+
+
+  def mostInnerResolveResult: ScalaResolveResult = {
+    var cur = this
+    while (cur.innerResolveResult.isDefined)
+      cur = cur.innerResolveResult.get
+    cur
   }
 
   //for name-based extractor

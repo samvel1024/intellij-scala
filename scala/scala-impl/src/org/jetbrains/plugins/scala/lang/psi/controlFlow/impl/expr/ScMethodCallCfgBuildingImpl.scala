@@ -1,9 +1,8 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr
 
 import com.intellij.psi.PsiMethod
-import org.jetbrains.plugins.scala.dfa.DfEntity
-import org.jetbrains.plugins.scala.lang.psi.api.expr.{ScExpression, ScMethodCall}
-import org.jetbrains.plugins.scala.lang.psi.api.statements.{ScFun, ScFunction, ScParameterOwner}
+import org.jetbrains.plugins.scala.lang.psi.api.expr.{ScAssignment, ScExpression, ScMethodCall}
+import org.jetbrains.plugins.scala.lang.psi.api.statements.{ScFun, ScParameterOwner}
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.{ExprResult, RequireResult, ResultRequirement}
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr.InvocationTools.InvocationInfo
@@ -43,29 +42,35 @@ trait ScMethodCallCfgBuildingImpl extends MethodInvocationCfgBuildingImpl { this
     def gatherCalls(restCalls: List[(ScMethodCall, Option[ScalaResolveResult])]): List[CallInfo] = {
       if (restCalls.isEmpty)
         return Nil
-
-      import ScalaResolveResult.{withActual => resolvesTo}
       val (call, result) :: rest = restCalls
-      val (restArgs, followingCalls) = result match {
-        case Some(resolvesTo(scalaFun: ScParameterOwner)) => rest.splitAt(scalaFun.allClauses.length - 1)
-        case Some(resolvesTo(syntheticFun: ScFun)) => rest.splitAt(syntheticFun.paramClauses.length - 1)
-        case Some(resolvesTo(javaFun: PsiMethod)) => (Nil, rest)
+      val target = result.map(_.mostInnerResolveResult)
+      val (restArgs, followingCalls) = target match {
+        case Some(ScalaResolveResult(scalaFun: ScParameterOwner, _)) => rest.splitAt(scalaFun.allClauses.length - 1)
+        case Some(ScalaResolveResult(syntheticFun: ScFun, _)) => rest.splitAt(syntheticFun.paramClauses.length - 1)
+        case Some(ScalaResolveResult(javaFun: PsiMethod, _)) => (Nil, rest)
         case None => rest.span(_._2.isEmpty)
       }
 
       val allMatchedArgs = call.matchedParameters ++ restArgs.flatMap(_._1.matchedParameters)
       val allArgExprs = call.argumentExpressions ++ restArgs.flatMap(_._1.argumentExpressions)
 
+      // there might be more parameter then the function wants. In this case still evaluate the parameters.
       val fixedArgs = fixArguments(allArgExprs, allMatchedArgs)
 
-      (call, result, fixedArgs) :: gatherCalls(followingCalls)
+      (call, target, fixedArgs) :: gatherCalls(followingCalls)
     }
 
     gatherCalls(chain.map(call => call -> call.target))
   }
 
   private def fixArguments(args: Seq[ScExpression], matched: Seq[(ScExpression, Parameter)]): Seq[(ScExpression, Parameter)] = {
-    val notMatchedArgs = args.filter(arg => !matched.exists(_._1 == arg))
+    def notAlreadyMatched(arg: ScExpression): Boolean =
+      !matched.exists(_._1 == arg)
+
+    val notMatchedArgs = args.filter {
+      case ScAssignment(_, Some(actualArg)) => notAlreadyMatched(actualArg)
+      case arg => notAlreadyMatched(arg)
+    }
     matched ++ makeFakeParameters(notMatchedArgs, matched.length)
   }
 
