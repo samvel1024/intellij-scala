@@ -23,7 +23,7 @@ object InvocationTools {
     - [ ] imported member methods
     - [ ] with or without implicits
     - [ ] with or without generics
-    - [ ] multiple parameter clauses
+    - [x] multiple parameter clauses
     - [ ] auto tupeling
     - [x] default parameter
     - [x] named arguments (potentially reordered)
