@@ -6,6 +6,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.expr.ScUnderScoreSectionUtil.Und
 import org.jetbrains.plugins.scala.lang.psi.api.expr.{ScExpression, ScUnderscoreSection}
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder._
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg._
+import org.jetbrains.plugins.scala.lang.psi.types.ScType
 import org.jetbrains.plugins.scala.project.ProjectContext
 
 import scala.collection.mutable
@@ -107,7 +108,12 @@ class CfgBuilder private(val underscoreExpressions: Map[ScExpression, Seq[DfConc
     this
   }
 
-  def call(thisRef: Option[DfEntity], func: Option[PsiNamedElement], ret: Option[DfVariable], params: Seq[DfEntity]): this.type = {
+  def instantiate(classType: ScType, ret: DfVariable): this.type = {
+    newInstr(new New(classType, ret))
+    this
+  }
+
+  def call(thisRef: Option[DfEntity], func: Option[PsiElement], ret: Option[DfVariable], params: Seq[DfEntity]): this.type = {
     newInstr(new Call(thisRef, func, ret, params, false))
     this
   }

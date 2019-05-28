@@ -1,12 +1,14 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg
 
-import com.intellij.psi.{PsiMethod, PsiNamedElement}
+import com.intellij.psi.{PsiElement, PsiMethod, PsiNamedElement}
+import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.dfa.{DfEntity, DfVariable}
+import org.jetbrains.plugins.scala.lang.psi.api.base.{AuxiliaryConstructor, Constructor}
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.AbstractInstructionVisitor
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.Call._
 
 class Call private[controlFlow](val thisRef: Option[DfEntity],
-                                val func: Option[PsiNamedElement],
+                                val func: Option[PsiElement],
                                 val ret: Option[DfVariable],
                                 val params: Seq[DfEntity],
                                 val dyn: Boolean) extends Instruction {
@@ -49,10 +51,12 @@ object Call extends Instruction.Info(
   name = "Call",
   hasControlFlowAfter = true
 ) {
-  private def getQualifiedName(func: PsiNamedElement): Option[String] = func match {
+  private def getQualifiedName(func: PsiElement): Option[String] = func match {
+    case Constructor.ofClass(clazz) =>
+      Some(clazz.getQualifiedName.toOption.getOrElse(clazz.name) + ".constructor")
     case method: PsiMethod =>
-      Option(method.getName).map(Option(method.getContainingClass).map(_.getQualifiedName + ".").getOrElse("") + _)
-    case _ =>
-      Option(func.getName)
+      method.getName.toOption.map(method.getContainingClass.toOption.flatMap(_.getQualifiedName.toOption).map(_ + ".").getOrElse("") + _)
+    case func: PsiNamedElement =>
+      func.getName.toOption
   }
 }

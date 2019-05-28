@@ -1,5 +1,6 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr
 
+import com.intellij.psi.PsiNamedElement
 import org.jetbrains.plugins.scala.lang.psi.api.expr.{MethodInvocation, ScInfixExpr, ScReferenceExpression}
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.ScNamedElement
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
@@ -13,7 +14,11 @@ trait ScInfixExprCfgBuildingImpl extends MethodInvocationCfgBuildingImpl { this:
 
     val invocInfo = this.invocationInfo
 
-    if (this.isAssignmentOperator && invocInfo.funcRef.exists(_.name == this.operation.getText.init)) {
+    def cond = invocInfo.funcRef
+      .collect { case elem: PsiNamedElement => elem }
+      .exists(_.name == this.operation.getText.init)
+
+    if (this.isAssignmentOperator && cond) {
 
 
       this.left match {

@@ -1,6 +1,6 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr
 
-import com.intellij.psi.PsiNamedElement
+import com.intellij.psi.{PsiElement, PsiNamedElement}
 import org.jetbrains.plugins.scala.dfa.DfEntity
 import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.lang.psi.api.expr.ScExpression
@@ -32,7 +32,7 @@ object InvocationTools {
    */
 
   case class InvocationInfo(thisExpr: Option[ScExpression],
-                            funcRef: Option[PsiNamedElement],
+                            funcRef: Option[PsiElement],
                             params: Seq[(ScExpression, Parameter)]) {
     def build(rreq: ResultRequirement)(implicit builder: CfgBuilder): ExprResult =
       buildWithoutThis(rreq, buildThisRef())

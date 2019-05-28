@@ -45,7 +45,6 @@ class InvocationsWithGenericsTest extends CfgBuildingTestBase {
     )
   }
   */
-   */
 
   /*
     todo: implement this

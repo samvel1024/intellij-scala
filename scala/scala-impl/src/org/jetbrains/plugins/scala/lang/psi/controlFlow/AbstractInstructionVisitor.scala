@@ -7,6 +7,7 @@ abstract class AbstractInstructionVisitor {
   def visitWrite(write: cfg.Write): Unit = visitInstruction(write)
   def visitRead(read: cfg.Read): Unit = visitInstruction(read)
   def visitCall(call: cfg.Call): Unit = visitInstruction(call)
+  def visitNew(newInstr: cfg.New): Unit = visitInstruction(newInstr)
   def visitJump(jump: cfg.Jump): Unit = visitInstruction(jump)
   def visitJumpIf(jumpIf: cfg.JumpIf): Unit = visitInstruction(jumpIf)
   def visitJumpIfNot(jumpIfNot: cfg.JumpIfNot): Unit = visitInstruction(jumpIfNot)
