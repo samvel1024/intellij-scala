@@ -6,6 +6,7 @@ package expr
 
 import com.intellij.lang.ASTNode
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr.ScMatchCfgBuildingImpl
 import org.jetbrains.plugins.scala.lang.psi.types.api.Nothing
 import org.jetbrains.plugins.scala.lang.psi.types.result._
 import org.jetbrains.plugins.scala.lang.psi.types.{ScType, ScTypeExt}
@@ -14,7 +15,7 @@ import org.jetbrains.plugins.scala.lang.psi.types.{ScType, ScTypeExt}
   * @author Alexander Podkhalyuzin
   *         Date: 06.03.2008
   */
-class ScMatchImpl(node: ASTNode) extends ScExpressionImplBase(node) with ScMatch {
+class ScMatchImpl(node: ASTNode) extends ScExpressionImplBase(node) with ScMatch with ScMatchCfgBuildingImpl{
 
   protected override def innerType: TypeResult = {
     val branchesTypes = expressions.map(_.`type`().getOrNothing)

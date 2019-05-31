@@ -1,6 +1,6 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg
 
-import org.jetbrains.plugins.scala.dfa.{DfEntity, DfVariable}
+import org.jetbrains.plugins.scala.dfa.{DfEntity, DfRegister, DfVariable}
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.RequireDirectResult.DirectResult
 
@@ -9,6 +9,7 @@ import scala.language.implicitConversions
 abstract class ExprResult {
   def get: DfEntity
   def pin(implicit builder: CfgBuilder): DfEntity = builder.pin(get)
+  def pinRegister(implicit builder: CfgBuilder): DfRegister = builder.pinToRegister(get)
 }
 
 object ExprResult {

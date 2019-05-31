@@ -85,6 +85,11 @@ class CfgBuilder private(val underscoreExpressions: Map[ScExpression, Seq[DfConc
     reg
   }
 
+  def pinToRegister(entity: DfEntity): DfRegister = entity match {
+    case reg: DfRegister => reg
+    case nonReg => pinToNewRegister(nonReg)
+  }
+
   def pin(source: DfEntity): DfEntity = source match {
     case reg: DfRegister => reg
     case value: DfValue => value

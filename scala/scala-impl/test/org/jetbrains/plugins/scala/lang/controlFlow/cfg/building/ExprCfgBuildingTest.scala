@@ -147,6 +147,25 @@ class ExprCfgBuildingTest extends CfgBuildingTestBase {
     )
   }
 
+  def test_match(): Unit = {
+    check(
+      """
+        |val x = 42 match {
+        |  case a => 10
+        |  case b => 11
+        |}
+        |""".stripMargin,
+      """
+        |%0 <- 42
+        |a = %0
+        |x = 10
+        |b = %0
+        |x = 11
+        |end
+        |""".stripMargin
+    )
+  }
+
   /*
   todo: implement this
   def test_property_access(): Unit = {
