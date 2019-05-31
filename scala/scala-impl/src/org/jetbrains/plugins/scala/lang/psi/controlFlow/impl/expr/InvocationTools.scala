@@ -41,8 +41,8 @@ object InvocationTools {
     def buildWithoutThis(rreq: ResultRequirement, thisRef: Option[DfEntity])(implicit builder: CfgBuilder): ExprResult = {
       val (ret, result) = rreq.tryPin()
       val paramRegs = params.sortBy(ArgumentSorting.exprPosition).map {
-        case (LambdaFromCaseClauseBlock(lambda), param) =>
-          param -> lambda
+        case (blockWithCaseClause@ScBlockExpr.withCaseClauses(_), param) =>
+          param -> CaseClausesTools.createLambdaFromCaseClausesBlock(blockWithCaseClause)
         case (expr, param) =>
           val reg = expr.buildExprControlFlow(RequireResult).pin
           param -> reg
@@ -76,36 +76,6 @@ object InvocationTools {
 
     def buildThisRef()(implicit builder: CfgBuilder): Option[DfEntity] =
       this.thisExpr.map(_.buildExprControlFlow(RequireResult).pin)
-  }
-
-  object LambdaFromCaseClauseBlock {
-    def unapply(caseBlock: ScBlockExpr with ScBlockExprCfgBuildingImpl)
-               (implicit builder: CfgBuilder): Option[DfConcreteLambdaRef] = {
-      if (!caseBlock.isAnonymousFunction) return None
-
-      val caseBlockParamVar = DfLocalVariable(caseBlock, "block$param")
-      val incomingType = caseBlock.caseClauseIncomingType(caseBlock.elementScope)
-        .getOrElse(builder.projectContext.stdTypes.Any)
-      val caseBlockParam = new DfConcreteLambdaRef.Parameter(caseBlockParamVar, incomingType)
-
-      val caseBlockCfg =
-        buildCaseClausesControlFlow(caseBlock, caseBlockParamVar, builder.createSubBuilder())
-
-      val lambda = new DfConcreteLambdaRef(caseBlock, Seq(caseBlockParam), caseBlockCfg)
-
-      Some(lambda)
-    }
-
-    private def buildCaseClausesControlFlow(caseBlock: ScBlockExpr with ScBlockExprCfgBuildingImpl,
-                                            caseBlockParamVar: DfLocalVariable,
-                                            builder: CfgBuilder): ControlFlowGraph = {
-      implicit val _builder: CfgBuilder = builder
-
-      val caseBlockParamReg = builder.pinToNewRegister(caseBlockParamVar)
-      val result = caseBlock.buildCaseClausesControlFlow(caseBlockParamReg, RequireResult).pin
-      builder.ret(result)
-      builder.build()
-    }
   }
 
   object ArgumentSorting {

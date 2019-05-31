@@ -42,6 +42,11 @@ object ScBlockExpr {
     def unapplySeq(e: ScBlockExpr): Some[Seq[ScBlockStatement]] = Some(e.statements)
   }
 
+  object withCaseClauses {
+    def unapply(blockExpr: ScBlockExpr): Option[ScCaseClauses] =
+      blockExpr.caseClauses
+  }
+
   implicit final class ScBlockExprExt(val blockExpr: ScBlockExpr) extends AnyVal {
     def caseClauseIncomingType(implicit scope: ElementScope): Option[ScType] = {
       blockExpr.expectedType(fromUnderscore = false) match {
