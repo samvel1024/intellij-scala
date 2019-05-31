@@ -13,6 +13,7 @@ import org.jetbrains.plugins.scala.lang.lexer.ScalaTokenTypes
 import org.jetbrains.plugins.scala.lang.psi.api.ScalaPsiElement
 import org.jetbrains.plugins.scala.lang.psi.api.base.patterns._
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr.ScForCfgBuildingImpl
 import org.jetbrains.plugins.scala.lang.psi.impl.ScalaCode._
 import org.jetbrains.plugins.scala.lang.psi.impl.expr.ScForImpl._
 import org.jetbrains.plugins.scala.lang.psi.types.ScType
@@ -28,7 +29,7 @@ import scala.collection.mutable
   * @author Alexander Podkhalyuzin
   *         Date: 06.03.2008
   */
-class ScForImpl(node: ASTNode) extends ScExpressionImplBase(node) with ScFor {
+class ScForImpl(node: ASTNode) extends ScExpressionImplBase(node) with ScFor with ScForCfgBuildingImpl {
   def isYield: Boolean = findChildByType[PsiElement](ScalaTokenTypes.kYIELD) != null
 
   def enumerators: Option[ScEnumerators] = findChild(classOf[ScEnumerators])

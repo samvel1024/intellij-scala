@@ -79,13 +79,16 @@ class CfgBuilder private(val underscoreExpressions: Map[ScExpression, Seq[DfConc
   def assign(target: PsiNamedElement, source: DfEntity): this.type =
     mov(resolveVariable(target), source)
 
+  def pinToNewRegister(entity: DfEntity): DfRegister = {
+    val reg = newRegister()
+    mov(reg, entity)
+    reg
+  }
+
   def pin(source: DfEntity): DfEntity = source match {
     case reg: DfRegister => reg
     case value: DfValue => value
-    case nonReg =>
-      val reg = newRegister()
-      mov(reg, nonReg)
-      reg
+    case nonReg => pinToNewRegister(nonReg)
   }
 
   def newRegister(): DfRegister =
@@ -153,6 +156,13 @@ class CfgBuilder private(val underscoreExpressions: Map[ScExpression, Seq[DfConc
     boundLabels += label
     numLabelsToNextInstr += 1
     label._targetIndex = indexOfNextInstr
+    this
+  }
+
+  def tryBindLabel(label: Option[BuildLabel]): this.type = {
+    label.foreach { label =>
+      bindLabel(label)
+    }
     this
   }
 

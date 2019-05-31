@@ -1,12 +1,13 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr
 
 import com.intellij.psi.{PsiElement, PsiNamedElement}
-import org.jetbrains.plugins.scala.dfa.DfEntity
+import org.jetbrains.plugins.scala.dfa.{DfConcreteLambdaRef, DfEntity, DfLocalVariable, DfRegister, DfVariable}
 import org.jetbrains.plugins.scala.extensions._
-import org.jetbrains.plugins.scala.lang.psi.api.expr.ScExpression
+import org.jetbrains.plugins.scala.lang.psi.api.expr.{ScBlockExpr, ScExpression}
 import org.jetbrains.plugins.scala.lang.psi.api.statements.params.ScParameter
-import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.{CfgBuilder, ControlFlowGraph}
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.{ExprResult, RequireResult, ResultRequirement}
+import org.jetbrains.plugins.scala.lang.psi.types.ScType
 import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.Parameter
 
 object InvocationTools {
@@ -40,6 +41,8 @@ object InvocationTools {
     def buildWithoutThis(rreq: ResultRequirement, thisRef: Option[DfEntity])(implicit builder: CfgBuilder): ExprResult = {
       val (ret, result) = rreq.tryPin()
       val paramRegs = params.sortBy(ArgumentSorting.exprPosition).map {
+        case (LambdaFromCaseClauseBlock(lambda), param) =>
+          param -> lambda
         case (expr, param) =>
           val reg = expr.buildExprControlFlow(RequireResult).pin
           param -> reg
@@ -75,6 +78,35 @@ object InvocationTools {
       this.thisExpr.map(_.buildExprControlFlow(RequireResult).pin)
   }
 
+  object LambdaFromCaseClauseBlock {
+    def unapply(caseBlock: ScBlockExpr with ScBlockExprCfgBuildingImpl)
+               (implicit builder: CfgBuilder): Option[DfConcreteLambdaRef] = {
+      if (!caseBlock.isAnonymousFunction) return None
+
+      val caseBlockParamVar = DfLocalVariable(caseBlock, "block$param")
+      val incomingType = caseBlock.caseClauseIncomingType(caseBlock.elementScope)
+        .getOrElse(builder.projectContext.stdTypes.Any)
+      val caseBlockParam = new DfConcreteLambdaRef.Parameter(caseBlockParamVar, incomingType)
+
+      val caseBlockCfg =
+        buildCaseClausesControlFlow(caseBlock, caseBlockParamVar, builder.createSubBuilder())
+
+      val lambda = new DfConcreteLambdaRef(caseBlock, Seq(caseBlockParam), caseBlockCfg)
+
+      Some(lambda)
+    }
+
+    private def buildCaseClausesControlFlow(caseBlock: ScBlockExpr with ScBlockExprCfgBuildingImpl,
+                                            caseBlockParamVar: DfLocalVariable,
+                                            builder: CfgBuilder): ControlFlowGraph = {
+      implicit val _builder: CfgBuilder = builder
+
+      val caseBlockParamReg = builder.pinToNewRegister(caseBlockParamVar)
+      val result = caseBlock.buildCaseClausesControlFlow(caseBlockParamReg, RequireResult).pin
+      builder.ret(result)
+      builder.build()
+    }
+  }
 
   object ArgumentSorting {
     def exprPosition(t: (ScExpression, Parameter)): (Int, Int) = {

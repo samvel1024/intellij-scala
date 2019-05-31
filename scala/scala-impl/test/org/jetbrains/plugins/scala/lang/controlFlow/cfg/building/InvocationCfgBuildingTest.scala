@@ -78,6 +78,25 @@ class InvocationCfgBuildingTest extends CfgBuildingTestBase {
     )
   }
 
+  def test_block_args(): Unit = {
+    check(
+      """
+        |def test(a: Int): Unit = ()
+        |
+        |test {
+        |  val a = 9
+        |  a
+        |}
+      """.stripMargin,
+      """
+        |a = 9
+        |%0 <- a
+        |call (%0) test
+        |end
+      """.stripMargin
+    )
+  }
+
   def test_named_args(): Unit = {
     check(
       """
