@@ -72,7 +72,8 @@ object ControlFlowGraph {
     val labelsOfInstr = jumps
       .map(_.targetLabel)
       .groupBy(_.targetIndex)
-      .withDefaultValue(Array.empty)
+      .mapValues(_.toSet)
+      .withDefaultValue(Set.empty)
 
 
     for ((instr, idx) <- instructions.zipWithIndex) {

@@ -1,9 +1,10 @@
 package org.jetbrains.plugins.scala.dfa
 
 import com.intellij.psi.{PsiElement, PsiNamedElement}
+import org.jetbrains.plugins.scala.lang.psi.ElementScope
 import org.jetbrains.plugins.scala.lang.psi.api.expr.ScExpression
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.ControlFlowGraph
-import org.jetbrains.plugins.scala.lang.psi.types.ScType
+import org.jetbrains.plugins.scala.lang.psi.types.{ScType, ScalaType}
 import org.jetbrains.plugins.scala.project.ProjectContext
 
 sealed abstract class DfEntity {
@@ -40,10 +41,19 @@ object DfValue {
   def int(value: Int): DfValue = DfConcreteInt(value)
 
   def anyRef(implicit pc: ProjectContext): DfValue = new DfAbstractValue(pc.stdTypes.AnyRef)
+
+  def abstractMatchError(implicit pc: ProjectContext): DfAbstractValue =
+    new DfAbstractValue(resolveType("scala.MatchError"))
+
+  private def resolveType(fqn: String)(implicit pc: ProjectContext): ScType =
+    ScalaType.designator(globalElementScope.getCachedClass(fqn).get)
+
+  private def globalElementScope(implicit pc: ProjectContext) =
+    ElementScope(pc.project)
 }
 
 class DfAbstractValue(upperBound: ScType) extends DfValue {
-
+  override def toString: String = s"Abstr[${upperBound.canonicalText}]"
 }
 
 sealed abstract class DfConcreteValue extends DfValue

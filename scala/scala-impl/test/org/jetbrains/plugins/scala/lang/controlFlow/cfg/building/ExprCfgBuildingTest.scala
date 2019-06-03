@@ -147,7 +147,7 @@ class ExprCfgBuildingTest extends CfgBuildingTestBase {
     )
   }
 
-  def test_match(): Unit = {
+  def test_match_with_result(): Unit = {
     check(
       """
         |val x = 42 match {
@@ -159,12 +159,59 @@ class ExprCfgBuildingTest extends CfgBuildingTestBase {
         |%0 <- 42
         |a = %0
         |x = 10
+        |jmp .LendCaseClause[7]
         |b = %0
         |x = 11
+        |.LendCaseClause[7]:
         |end
         |""".stripMargin
     )
   }
+
+  def test_match_without_result(): Unit = {
+    check(
+      """
+        |42 match {
+        |  case a => 10
+        |  case b => 11
+        |}
+        |""".stripMargin,
+      """
+        |%0 <- 42
+        |a = %0
+        |noop 10
+        |jmp .LendCaseClause[7]
+        |b = %0
+        |noop 11
+        |.LendCaseClause[7]:
+        |end
+        |""".stripMargin
+    )
+  }
+
+  def test_match_with_guard(): Unit = {
+    check(
+      """
+        |42 match {
+        |  case a if a == 0 => 10
+        |}
+        |""".stripMargin,
+      """
+        |%0 <- 42
+        |a = %0
+        |%1 <- a
+        |%2 <- call [%1](0) ==
+        |if! %2 -> .LcaseFail[8]
+        |noop 10
+        |jmp .LendCaseClause[9]
+        |.LcaseFail[8]:
+        |throw Abstr[_root_.scala.MatchError]
+        |.LendCaseClause[9]:
+        |end
+        |""".stripMargin
+    )
+  }
+
 
   /*
   todo: implement this

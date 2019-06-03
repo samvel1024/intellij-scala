@@ -12,6 +12,7 @@ abstract class AbstractInstructionVisitor {
   def visitJumpIf(jumpIf: cfg.JumpIf): Unit = visitInstruction(jumpIf)
   def visitJumpIfNot(jumpIfNot: cfg.JumpIfNot): Unit = visitInstruction(jumpIfNot)
   def visitRet(ret: cfg.Ret): Unit = visitInstruction(ret)
+  def visitThrow(thrw: cfg.Throw): Unit = visitInstruction(thrw)
   def visitEnd(end: cfg.End): Unit = visitInstruction(end)
   def visitNoop(noop: cfg.Noop): Unit = visitInstruction(noop)
 }

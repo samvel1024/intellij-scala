@@ -18,7 +18,10 @@ abstract class CfgBuildingTestBase extends ScalaLightCodeInsightFixtureTestAdapt
     )
 
     val func = actualFile.asInstanceOf[ScControlFlowOwner]
-    assertEquals(result.trim, func.controlFlowGraph.asmText(lineNumbers = false, indentation = false))
+    assertEquals(result.trim, func.controlFlowGraph.asmText(
+      lineNumbers = false,
+      indentation = false
+    ))
   }
 
 }

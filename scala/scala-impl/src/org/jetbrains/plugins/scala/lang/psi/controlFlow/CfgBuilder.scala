@@ -111,6 +111,15 @@ class CfgBuilder private(val underscoreExpressions: Map[ScExpression, Seq[DfConc
     this
   }
 
+  def throwMatchError(): this.type = {
+    throwException(DfValue.abstractMatchError)
+  }
+
+  def throwException(entity: DfEntity): this.type = {
+    newInstr(new Throw(entity))
+    this
+  }
+
   def end(): this.type = {
     newInstr(new End)
     this
@@ -198,14 +207,19 @@ class CfgBuilder private(val underscoreExpressions: Map[ScExpression, Seq[DfConc
 }
 
 object CfgBuilder {
-  class BuildLabel(val _name: String) extends Label {
+  class BuildLabel(_name: String) extends Label {
     private[CfgBuilder] var _targetIndex = -1
     private[CfgBuilder] var _graph: ControlFlowGraph = _
 
-    override def name: String = {
+    override def name: String = makeName(insertLineNumber = true)
+    override def nameWithoutLine: String = makeName(insertLineNumber = false)
+
+    private def makeName(insertLineNumber: Boolean): String = {
       val boundTo = if (isBound) line.toString else "<unbound>"
       val name = if (_name.nonEmpty) _name else "unknown"
-      s"$name[$boundTo]"
+
+      if (!isBound || insertLineNumber) s"$name[$boundTo]"
+      else name
     }
 
     override def targetIndex: Int = {

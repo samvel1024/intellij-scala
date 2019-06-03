@@ -50,4 +50,27 @@ class PatternCfgBuildingTest extends CfgBuildingTestBase {
       """.stripMargin
     )
   }
+
+  def test_wildcard(): Unit = {
+    check(
+      """
+        |val _ = 3
+        |""".stripMargin,
+      """
+        |noop 3
+        |end
+        |""".stripMargin
+    )
+
+    check(
+      """
+        |val _, _ = 3
+        |""".stripMargin,
+      """
+        |noop 3
+        |noop 3
+        |end
+        |""".stripMargin
+    )
+  }
 }

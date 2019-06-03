@@ -47,25 +47,41 @@ object CaseClausesTools {
       labelNum += 1
       createLabel("case" + labelNum)
     }
-
-    val failLabel = caseClauses.caseClauses.foldLeft(Option.empty[CfgBuilder.BuildLabel]) {
-      case (prevLabel, ScCaseClause(Some(pattern), guard, expr)) =>
+    var canFail = true
+    val caseClausesSeq = caseClauses.caseClauses
+    lazy val last = caseClausesSeq.last
+    val failLabel = caseClausesSeq.foldLeft(Option.empty[CfgBuilder.BuildLabel]) {
+      case (prevLabel, cc@ScCaseClause(Some(pattern), guard, expr)) =>
+        val isLast = last == cc
         tryBindLabel(prevLabel)
-        val nextLabel = newNextLabel()
+        val nextLabel =
+          if (isLast) createLabel("caseFail")
+          else newNextLabel()
+
+        // matcher
         pattern.buildPatternControlFlow(CfgBuildingPattern.DirectSupplier(subject), Some(nextLabel))
         guard.foreach { guard =>
           val cond = buildExprOrAny(guard.expr)
           jumpIfFalse(cond, nextLabel)
         }
+
+        // body
         buildExprOrAny(expr, caseRreq)
+
+        canFail &&= !(guard.isEmpty && pattern.isIrrefutableFor(None))
+        val canExitDirectly = isLast && !canFail
+        if (!canExitDirectly)
+          jumpTo(endLabel)
+
         Some(nextLabel)
       case (nextLabel, _) =>
         nextLabel
     }
 
-    tryBindLabel(failLabel)
-
-    // todo: build exception throw here
+    if (canFail) {
+      tryBindLabel(failLabel)
+      throwMatchError()
+    }
 
     bindLabel(endLabel)
 
