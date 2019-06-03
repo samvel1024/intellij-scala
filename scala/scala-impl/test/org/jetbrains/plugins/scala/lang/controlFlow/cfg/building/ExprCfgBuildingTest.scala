@@ -212,6 +212,20 @@ class ExprCfgBuildingTest extends CfgBuildingTestBase {
     )
   }
 
+  def test_throw(): Unit = {
+    check(
+      """
+        |throw new AssertionError
+        |""".stripMargin,
+      """
+        |%0 <- new AssertionError
+        |%1 <- call [%0]() java.lang.AssertionError.constructor
+        |throw %1
+        |end
+        |""".stripMargin
+    )
+  }
+
 
   /*
   todo: implement this

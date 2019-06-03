@@ -6,13 +6,14 @@ package expr
 
 import com.intellij.lang.ASTNode
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr.ScThrowCfgBuildingImpl
 import org.jetbrains.plugins.scala.lang.psi.types.api.Nothing
 import org.jetbrains.plugins.scala.lang.psi.types.result._
 
 /**
   * @author Alexander Podkhalyuzin, ilyas
   */
-class ScThrowImpl(node: ASTNode) extends ScExpressionImplBase(node) with ScThrow {
+class ScThrowImpl(node: ASTNode) extends ScExpressionImplBase(node) with ScThrow with ScThrowCfgBuildingImpl {
   protected override def innerType: TypeResult = Right(Nothing)
 
   override def toString: String = "ThrowStatement"
