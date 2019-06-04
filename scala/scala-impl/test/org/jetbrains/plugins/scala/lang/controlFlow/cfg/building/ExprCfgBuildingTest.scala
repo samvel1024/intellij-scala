@@ -226,6 +226,32 @@ class ExprCfgBuildingTest extends CfgBuildingTestBase {
     )
   }
 
+  def test_tuple(): Unit = {
+    check(
+      """
+        |val a = (1, 2)
+        |""".stripMargin,
+      """
+        |%0 <- Tuple2$
+        |a = call [%0](1, 2) scala.Tuple2$.apply
+        |end
+        |""".stripMargin
+    )
+
+    check(
+      """val a = true
+        |(1, a)
+        |""".stripMargin,
+      """
+        |a = true
+        |%0 <- a
+        |%1 <- Tuple2$
+        |call [%1](1, %0) scala.Tuple2$.apply
+        |end
+        |""".stripMargin
+    )
+  }
+
 
   /*
   todo: implement this

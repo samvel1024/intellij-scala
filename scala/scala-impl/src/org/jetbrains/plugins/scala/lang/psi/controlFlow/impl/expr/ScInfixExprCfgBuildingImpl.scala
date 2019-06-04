@@ -1,18 +1,18 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr
 
 import com.intellij.psi.PsiNamedElement
+import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.lang.psi.api.expr.{MethodInvocation, ScInfixExpr, ScReferenceExpression}
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.ScNamedElement
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.{ExprResult, RequireResult, ResultRequirement}
-import org.jetbrains.plugins.scala.extensions._
-import org.jetbrains.plugins.scala.lang.psi.api.statements.ScVariable
 
 trait ScInfixExprCfgBuildingImpl extends MethodInvocationCfgBuildingImpl { this: ScInfixExpr =>
   protected override def buildActualExpressionControlFlow(rreq: ResultRequirement)
                                                          (implicit builder: CfgBuilder): ExprResult = {
+    import InvocationTools.invocationInfoFor
 
-    val invocInfo = this.invocationInfo
+    val invocInfo = invocationInfoFor(this)
 
     def cond = invocInfo.funcRef
       .collect { case elem: PsiNamedElement => elem }

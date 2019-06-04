@@ -1,13 +1,12 @@
 package org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr
 
-import com.intellij.psi.{PsiElement, PsiNamedElement}
-import org.jetbrains.plugins.scala.dfa.{DfConcreteLambdaRef, DfEntity, DfLocalVariable, DfRegister, DfVariable}
+import com.intellij.psi.PsiElement
+import org.jetbrains.plugins.scala.dfa.DfEntity
 import org.jetbrains.plugins.scala.extensions._
-import org.jetbrains.plugins.scala.lang.psi.api.expr.{ScBlockExpr, ScExpression}
+import org.jetbrains.plugins.scala.lang.psi.api.expr.{MethodInvocation, ScBlockExpr, ScExpression}
 import org.jetbrains.plugins.scala.lang.psi.api.statements.params.ScParameter
-import org.jetbrains.plugins.scala.lang.psi.controlFlow.{CfgBuilder, ControlFlowGraph}
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.{ExprResult, RequireResult, ResultRequirement}
-import org.jetbrains.plugins.scala.lang.psi.types.ScType
 import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.Parameter
 
 object InvocationTools {
@@ -87,5 +86,17 @@ object InvocationTools {
       else 1 -> param.index
     }
     def paramPosition(t: (Parameter, DfEntity)): Int = t._1.index
+  }
+
+  def invocationInfoFor(invoc: MethodInvocation): InvocationInfo = {
+    //val rr = invoc.target
+    //val isTupled = rr.exists(_.tuplingUsed)
+    //val params = if (isTupled)
+    InvocationInfo(invoc.thisExpr, invoc.target.map(_.element), invoc.matchedParameters )
+  }
+
+  object withInvocationInfo {
+    def unapply(invoc: MethodInvocation): Option[InvocationInfo] =
+      Some(invocationInfoFor(invoc))
   }
 }
