@@ -75,18 +75,20 @@ class OperatorCfgBuildingTest extends CfgBuildingTestBase {
   def test_changed_associativity_with_defaults(): Unit = {
     check(
       """
-        |
+        |val defarg = "default"
         |object Test {
-        |  def -:(value: Int, default: String = "default"): Unit = ()
+        |  def -:(value: Int, default: String = defarg): Unit = ()
         |}
         |val a = 9
         |a -: Test
       """.stripMargin,
       """
+        |defarg = "default"
         |a = 9
         |%0 <- a
         |%1 <- Test$
-        |call [%1](%0, "default") Test$.$minus$colon
+        |%2 <- defarg
+        |call [%1](%0, %2) Test$.$minus$colon
         |end
       """.stripMargin
     )

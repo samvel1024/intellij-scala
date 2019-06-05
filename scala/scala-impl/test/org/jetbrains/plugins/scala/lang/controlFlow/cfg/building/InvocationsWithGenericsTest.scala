@@ -20,10 +20,10 @@ class InvocationsWithGenericsTest extends CfgBuildingTestBase {
       """
         |def test[A](a: A)(b: A) = ()
         |
-        |test(100, true)
+        |test(100)(true)
       """.stripMargin,
       """
-        |call (100, true) test
+        |call (100)(true) test
         |end
       """.stripMargin
     )

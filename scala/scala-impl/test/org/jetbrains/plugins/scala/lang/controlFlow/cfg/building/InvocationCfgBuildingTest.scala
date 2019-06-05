@@ -304,4 +304,20 @@ class InvocationCfgBuildingTest extends CfgBuildingTestBase {
       """.stripMargin
     )
   }
+
+  def test_auto_tupling(): Unit = {
+    check(
+      """
+        |def test(arg: (Int, Int)): Unit = ()
+        |
+        |test(1, 2)
+        |""".stripMargin,
+      """
+        |%1 <- Tuple2$
+        |%0 <- call [%1](1, 2) scala.Tuple2$.apply
+        |call (%0) test
+        |end
+        |""".stripMargin
+    )
+  }
 }

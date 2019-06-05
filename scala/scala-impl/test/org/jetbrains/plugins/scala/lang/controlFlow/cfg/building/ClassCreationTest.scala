@@ -49,7 +49,7 @@ class ClassCreationTest extends CfgBuildingTestBase {
     """.stripMargin,
     """
       |%0 <- new Test
-      |call [%0](3, true, 4, 5) Test.constructor
+      |call [%0](3, true)(4, 5) Test.constructor
       |end
     """.stripMargin
   )

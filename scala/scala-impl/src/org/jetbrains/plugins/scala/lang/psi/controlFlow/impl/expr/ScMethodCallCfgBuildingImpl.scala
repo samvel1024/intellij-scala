@@ -1,11 +1,12 @@
-package org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr
+package org.jetbrains.plugins.scala.lang.psi.controlFlow
+package impl
+package expr
 
 import com.intellij.psi.PsiMethod
-import org.jetbrains.plugins.scala.lang.psi.api.expr.{ScAssignment, ScExpression, ScMethodCall}
+import org.jetbrains.plugins.scala.lang.psi.api.expr.{MethodInvocation, ScAssignment, ScExpression, ScInfixExpr, ScMethodCall}
 import org.jetbrains.plugins.scala.lang.psi.api.statements.{ScFun, ScParameterOwner}
-import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.{ExprResult, RequireResult, ResultRequirement}
-import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr.InvocationTools.InvocationInfo
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr.InvocationTools.{ArgParamClause, InvocationInfo}
 import org.jetbrains.plugins.scala.lang.psi.types.api
 import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.Parameter
 import org.jetbrains.plugins.scala.lang.resolve.ScalaResolveResult
@@ -26,7 +27,11 @@ trait ScMethodCallCfgBuildingImpl extends MethodInvocationCfgBuildingImpl { this
         InvocationInfo(call.thisExpr, resolveResult.map(_.element), matchedParameters)
       lastResult = idx match {
         case 0 =>
-          invocInfo.build(if (lastIdx == 0) rreq else RequireResult)
+          val rreq0 = if (lastIdx == 0) rreq else RequireResult
+          call match {
+            case infix: ScInfixExpr if infix.isRightAssoc => invocInfo.buildRightAssoc(rreq0)
+            case _ => invocInfo.build(rreq0)
+          }
         case `lastIdx` =>
           invocInfo.buildWithoutThis(rreq, Some(lastResult.pin))
         case _ =>
@@ -37,13 +42,14 @@ trait ScMethodCallCfgBuildingImpl extends MethodInvocationCfgBuildingImpl { this
     lastResult
   }
 
-  private type CallInfo = (ScMethodCall, Option[ScalaResolveResult], Seq[(ScExpression, Parameter)])
-  private def splitChain(chain: List[ScMethodCall]): List[CallInfo] = {
-    def gatherCalls(restCalls: List[(ScMethodCall, Option[ScalaResolveResult])]): List[CallInfo] = {
+  private type CallInfo = (MethodInvocation, Option[ScalaResolveResult], Seq[ArgParamClause])
+  private def splitChain(chain: List[MethodInvocation]): List[CallInfo] = {
+    def gatherCalls(restCalls: List[(MethodInvocation, Option[ScalaResolveResult])]): List[CallInfo] = {
       if (restCalls.isEmpty)
         return Nil
       val (call, result) :: rest = restCalls
       val target = result.map(_.mostInnerResolveResult)
+      val tuplingUsed = target.exists(_.tuplingUsed)
       val (restArgs, followingCalls) = target match {
         case Some(ScalaResolveResult(scalaFun: ScParameterOwner, _)) => rest.splitAt(scalaFun.allClauses.length - 1)
         case Some(ScalaResolveResult(syntheticFun: ScFun, _)) => rest.splitAt(syntheticFun.paramClauses.length - 1)
@@ -51,11 +57,13 @@ trait ScMethodCallCfgBuildingImpl extends MethodInvocationCfgBuildingImpl { this
         case None => rest.span(_._2.isEmpty)
       }
 
-      val allMatchedArgs = call.matchedParameters ++ restArgs.flatMap(_._1.matchedParameters)
-      val allArgExprs = call.argumentExpressions ++ restArgs.flatMap(_._1.argumentExpressions)
+      val allMatchedArgs = call.matchedParameters +: restArgs.map(_._1.matchedParameters)
+      val allArgExprs = call.argumentExpressions +: restArgs.map(_._1.argumentExpressions)
 
       // there might be more parameter then the function wants. In this case still evaluate the parameters.
-      val fixedArgs = fixArguments(allArgExprs, allMatchedArgs)
+      val fixedArgs =
+        allArgExprs.zip(allMatchedArgs)
+          .map { case (exprs, argParams) => fixArguments(exprs, argParams, tuplingUsed) }
 
       (call, target, fixedArgs) :: gatherCalls(followingCalls)
     }
@@ -63,7 +71,7 @@ trait ScMethodCallCfgBuildingImpl extends MethodInvocationCfgBuildingImpl { this
     gatherCalls(chain.map(call => call -> call.target))
   }
 
-  private def fixArguments(args: Seq[ScExpression], matched: Seq[(ScExpression, Parameter)]): Seq[(ScExpression, Parameter)] = {
+  private def fixArguments(args: Seq[ScExpression], matched: Seq[(ScExpression, Parameter)], tuplingUsed: Boolean): ArgParamClause = {
     def notAlreadyMatched(arg: ScExpression): Boolean =
       !matched.exists(_._1 == arg)
 
@@ -71,7 +79,7 @@ trait ScMethodCallCfgBuildingImpl extends MethodInvocationCfgBuildingImpl { this
       case ScAssignment(_, Some(actualArg)) => notAlreadyMatched(actualArg)
       case arg => notAlreadyMatched(arg)
     }
-    matched ++ makeFakeParameters(notMatchedArgs, matched.length)
+    ArgParamClause(matched ++ makeFakeParameters(notMatchedArgs, matched.length), isTupled = tuplingUsed)
   }
 
   // arguments to an unresolved call should still be evaluated
@@ -81,11 +89,12 @@ trait ScMethodCallCfgBuildingImpl extends MethodInvocationCfgBuildingImpl { this
     }
   }
 
-  private def innerMethodCallChain: List[ScMethodCall] = {
+  private def innerMethodCallChain: List[MethodInvocation] = {
     @tailrec
-    def inner(cur: ScExpression, found: List[ScMethodCall]): List[ScMethodCall] = {
+    def inner(cur: ScExpression, found: List[MethodInvocation]): List[MethodInvocation] = {
       cur match {
         case call: ScMethodCall => inner(call.getEffectiveInvokedExpr, call :: found)
+        case infix: ScInfixExpr => infix :: found
         case _ => found
       }
     }

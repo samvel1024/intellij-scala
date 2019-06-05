@@ -223,7 +223,7 @@ class ScConstructorInvocationImpl(node: ASTNode) extends ScalaPsiElementImpl(nod
   override def matchedParameters: Seq[(ScExpression, Parameter)] = matchedParametersByClauses.flatten
 
   @Cached(ModCount.getBlockModificationCount, this)
-  def matchedParametersByClauses: Seq[Seq[(ScExpression, Parameter)]] = {
+  override def matchedParametersByClauses: Seq[Seq[(ScExpression, Parameter)]] = {
     val paramClauses = this.reference.map(_.resolve()).orNull match {
       case ScalaConstructor(constr) => constr.effectiveParameterClauses.map(_.effectiveParameters)
       case JavaConstructor(constr)  => Seq(constr.parameters)

@@ -24,7 +24,7 @@ object TupleTools {
     val (ret, result) = rreq.tryPin()
 
     val thisEntity = invocInfo.buildThisRef()
-     builder.call(thisEntity, invocInfo.funcRef, ret, items.map(builder.pin))
+     builder.call(thisEntity, invocInfo.funcRef, ret, Seq(items.map(builder.pin)))
 
     result
   }

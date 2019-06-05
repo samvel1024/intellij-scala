@@ -130,7 +130,7 @@ class CfgBuilder private(val underscoreExpressions: Map[ScExpression, Seq[DfConc
     this
   }
 
-  def call(thisRef: Option[DfEntity], func: Option[PsiElement], ret: Option[DfVariable], params: Seq[DfEntity]): this.type = {
+  def call(thisRef: Option[DfEntity], func: Option[PsiElement], ret: Option[DfVariable], params: Seq[Seq[DfEntity]]): this.type = {
     newInstr(new Call(thisRef, func, ret, params, false))
     this
   }

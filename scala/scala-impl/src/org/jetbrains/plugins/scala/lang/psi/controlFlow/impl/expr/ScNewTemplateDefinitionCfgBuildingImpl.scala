@@ -1,8 +1,11 @@
-package org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr
+package org.jetbrains.plugins.scala.lang.psi.controlFlow
+package impl
+package expr
 
 import org.jetbrains.plugins.scala.lang.psi.api.expr.ScNewTemplateDefinition
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.{ExprResult, ResultRequirement}
+import org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr.InvocationTools.{ArgParamClause, InvocationInfo}
 import org.jetbrains.plugins.scala.lang.resolve.ScalaResolveResult
 
 trait ScNewTemplateDefinitionCfgBuildingImpl { this: ScNewTemplateDefinition =>
@@ -22,8 +25,10 @@ trait ScNewTemplateDefinitionCfgBuildingImpl { this: ScNewTemplateDefinition =>
         val classReg = builder.newRegister()
         builder.instantiate(classType, classReg)
 
-        InvocationTools.InvocationInfo(None, Some(target), constructorInvocation.matchedParameters)
-            .buildWithoutThis(rreq, Some(classReg))
+        InvocationInfo(
+          None, Some(target),
+          constructorInvocation.matchedParametersByClauses.map(ArgParamClause(_, isTupled = false))
+        ).buildWithoutThis(rreq, Some(classReg))
       case None =>
         rreq.satisfyAny(noop = true)
     }

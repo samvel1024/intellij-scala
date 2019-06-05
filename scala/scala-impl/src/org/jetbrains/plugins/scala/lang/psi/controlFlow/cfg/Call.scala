@@ -10,11 +10,11 @@ import org.jetbrains.plugins.scala.lang.psi.controlFlow.cfg.Call._
 class Call private[controlFlow](val thisRef: Option[DfEntity],
                                 val func: Option[PsiElement],
                                 val ret: Option[DfVariable],
-                                val params: Seq[DfEntity],
+                                val params: Seq[Seq[DfEntity]],
                                 val dyn: Boolean) extends Instruction {
 
 
-  override def sourceEntities: Seq[DfEntity] = params
+  override def sourceEntities: Seq[DfEntity] = params.flatten
   override def variables: Seq[DfVariable] = ret.toSeq
 
   override def asmString: String = {
@@ -35,7 +35,8 @@ class Call private[controlFlow](val thisRef: Option[DfEntity],
       builder.append("]")
     }
 
-    builder.append(params.mkString("(", ", ", ")"))
+    if (params.isEmpty) builder.append("()")
+    else builder.append(params.map(_.mkString("(", ", ", ")")).mkString)
 
     builder.append(" ")
     builder.append(func.flatMap(getQualifiedName).getOrElse("<unknown>"))

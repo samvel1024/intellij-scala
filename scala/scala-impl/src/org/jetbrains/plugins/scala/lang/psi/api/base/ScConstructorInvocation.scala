@@ -42,6 +42,8 @@ trait ScConstructorInvocation extends ScalaPsiElement with ConstructorInvocation
   def reference: Option[ScStableCodeReference]
 
   def matchedParameters: Seq[(ScExpression, Parameter)]
+
+  def matchedParametersByClauses: Seq[Seq[(ScExpression, Parameter)]]
 }
 
 object ScConstructorInvocation {

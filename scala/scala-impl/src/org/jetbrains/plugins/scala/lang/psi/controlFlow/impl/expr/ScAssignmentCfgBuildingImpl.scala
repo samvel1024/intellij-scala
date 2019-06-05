@@ -1,4 +1,6 @@
-package org.jetbrains.plugins.scala.lang.psi.controlFlow.impl.expr
+package org.jetbrains.plugins.scala.lang.psi.controlFlow
+package impl
+package expr
 
 import org.jetbrains.plugins.scala.lang.psi.api.expr.{ScAssignment, ScMethodCall}
 import org.jetbrains.plugins.scala.lang.psi.controlFlow.CfgBuilder
@@ -9,14 +11,13 @@ trait ScAssignmentCfgBuildingImpl { this: ScAssignment =>
 
   protected override def buildActualExpressionControlFlow(rreq: ResultRequirement)
                                                          (implicit builder: CfgBuilder): ExprResult = {
+    import InvocationTools.invocationInfoFor
+
     leftExpression match {
       case invok: ScMethodCall =>
         // call to update
-        val invocationInfo = InvocationInfo(
-          Some(invok.getEffectiveInvokedExpr),
-          invok.target.map(_.element),
-          invok.matchedParameters
-        )
+        val invocationInfo =
+          invocationInfoFor(invok).copy(thisExpr = Some(invok.getEffectiveInvokedExpr))
 
         invocationInfo.build(rreq)
 

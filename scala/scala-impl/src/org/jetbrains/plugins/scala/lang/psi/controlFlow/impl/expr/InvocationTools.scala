@@ -31,23 +31,37 @@ object InvocationTools {
     - [ ] dynamics
    */
 
+  final case class ArgParamClause(argParams: Seq[(ScExpression, Parameter)], isTupled: Boolean) {
+    def sortedByExprPosition: ArgParamClause =
+      if (isTupled) this
+      else copy(argParams = argParams.sortBy(ArgumentSorting.exprPosition))
+
+    def build()(implicit builder: CfgBuilder): Seq[(Int, DfEntity)] = {
+      if (isTupled) Seq(0 -> TupleTools.buildTupleCreation(argParams.map(_._1), RequireResult).pin)
+      else argParams.map(buildArgParams)
+    }
+  }
+
+  private def buildArgParams(argParam: (ScExpression, Parameter))
+                            (implicit builder: CfgBuilder): (Int, DfEntity) = argParam match {
+    case (blockWithCaseClause@ScBlockExpr.withCaseClauses(_), param) =>
+      param.index -> CaseClausesTools.createLambdaFromCaseClausesBlock(blockWithCaseClause)
+    case (expr, param) =>
+      val reg = expr.buildExprControlFlow(RequireResult).pin
+      param.index -> reg
+  }
+
   case class InvocationInfo(thisExpr: Option[ScExpression],
                             funcRef: Option[PsiElement],
-                            params: Seq[(ScExpression, Parameter)]) {
+                            argParams: Seq[ArgParamClause]) {
     def build(rreq: ResultRequirement)(implicit builder: CfgBuilder): ExprResult =
       buildWithoutThis(rreq, buildThisRef())
 
     def buildWithoutThis(rreq: ResultRequirement, thisRef: Option[DfEntity])(implicit builder: CfgBuilder): ExprResult = {
       val (ret, result) = rreq.tryPin()
-      val paramRegs = params.sortBy(ArgumentSorting.exprPosition).map {
-        case (blockWithCaseClause@ScBlockExpr.withCaseClauses(_), param) =>
-          param -> CaseClausesTools.createLambdaFromCaseClausesBlock(blockWithCaseClause)
-        case (expr, param) =>
-          val reg = expr.buildExprControlFlow(RequireResult).pin
-          param -> reg
-      }
+      val paramRegs = argParams.map(_.sortedByExprPosition.build())
 
-      val args = paramRegs.sortBy(ArgumentSorting.paramPosition).map(_._2)
+      val args = paramRegs.map(_.sortBy(ArgumentSorting.paramPosition).map(_._2))
 
       builder.call(thisRef, funcRef, ret, args)
 
@@ -55,21 +69,23 @@ object InvocationTools {
     }
 
     def buildRightAssoc(rreq: ResultRequirement)(implicit builder: CfgBuilder): ExprResult = {
+      assert(this.argParams.nonEmpty)
+      assert(!this.argParams.head.isTupled)
       // For 'a :: b'
       // 1. evaluate a
       // 2. evaluate b
       // 3. evaluate default and implicit parameters
-      val (leftExpr, _) +: defaultOrImplicitParams = this.params.sortBy(ArgumentSorting.exprPosition)
+      val firstArgClause +: restClauses = this.argParams.map(_.sortedByExprPosition)
+      val (leftExpr, _) +: defaultOrImplicitParams = firstArgClause.argParams
 
       val (ret, result) = rreq.tryPin()
       val actualArgRef = leftExpr.buildExprControlFlow(RequireResult).pin
       val thisRef = buildThisRef()
-      val defaultOrImplicitArgRefs = defaultOrImplicitParams.map {
-        case (expr, _) =>
-          expr.buildExprControlFlow(RequireResult).pin
-      }
+      val defaultOrImplicitArgRefs = defaultOrImplicitParams.map(buildArgParams).map(_._2)
+      val firstArgClauseRefs = actualArgRef +: defaultOrImplicitArgRefs
+      val restArgClausesRefs = restClauses.map(_.build().map(_._2))
 
-      builder.call(thisRef, funcRef, ret, actualArgRef +: defaultOrImplicitArgRefs)
+      builder.call(thisRef, funcRef, ret, firstArgClauseRefs +: restArgClausesRefs)
       result
     }
 
@@ -85,14 +101,17 @@ object InvocationTools {
       if (notDefault) 0 -> expr.getTextOffset
       else 1 -> param.index
     }
-    def paramPosition(t: (Parameter, DfEntity)): Int = t._1.index
+    def paramPosition(t: (Int, DfEntity)): Int = t._1
   }
 
   def invocationInfoFor(invoc: MethodInvocation): InvocationInfo = {
-    //val rr = invoc.target
-    //val isTupled = rr.exists(_.tuplingUsed)
-    //val params = if (isTupled)
-    InvocationInfo(invoc.thisExpr, invoc.target.map(_.element), invoc.matchedParameters )
+    val rr = invoc.target
+    val isTupled = rr.exists(_.tuplingUsed)
+    InvocationInfo(
+      invoc.thisExpr,
+      rr.map(_.element),
+      Seq(ArgParamClause(invoc.matchedParameters, isTupled))
+    )
   }
 
   object withInvocationInfo {
