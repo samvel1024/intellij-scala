@@ -4,7 +4,6 @@ package completion3
 
 import com.intellij.codeInsight.completion.CompletionType
 import com.intellij.codeInsight.lookup.{Lookup, LookupElement}
-import org.jetbrains.plugins.scala.debugger.{ScalaVersion, Scala_2_12}
 
 class ScalaClausesCompletionTest extends ScalaCodeInsightTestBase {
 
@@ -12,8 +11,6 @@ class ScalaClausesCompletionTest extends ScalaCodeInsightTestBase {
   import Lookup.REPLACE_SELECT_CHAR
   import ScalaCodeInsightTestBase._
   import completion.ScalaKeyword.{CASE, MATCH}
-
-  override implicit val version: ScalaVersion = Scala_2_12
 
   def testSyntheticUnapply(): Unit = doPatternCompletionTest(
     fileText =
