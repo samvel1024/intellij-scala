@@ -20,14 +20,14 @@ import org.junit.Assert._
  */
 
 abstract class CompletionTestBase extends base.ScalaLightPlatformCodeInsightTestCaseAdapter {
-
   import lang.lexer.ScalaTokenTypes._
 
+  def testFileExt: String = ".scala"
   protected val caretMarker = "/*caret*/"
 
   protected val extension: String = "scala"
 
-  def folderPath: String = baseRootPath() + "completion/"
+  def folderPath: String = baseRootPath + "completion/"
 
   /**
    * Fetches last PSI element, checks if it is comment or not

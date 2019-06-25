@@ -23,7 +23,7 @@ abstract class JavaToScalaConversionTestBase extends base.ScalaLightPlatformCode
   private val startMarker = "/*start*/"
   private val endMarker = "/*end*/"
 
-  def folderPath: String = baseRootPath() + "conversion/"
+  def folderPath: String = baseRootPath + "conversion/"
 
   protected def doTest(typeAnnotationSettings: ScalaCodeStyleSettings = alwaysAddType(ScalaCodeStyleSettings.getInstance(getProjectAdapter))) {
     import org.junit.Assert._

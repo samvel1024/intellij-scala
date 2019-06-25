@@ -40,7 +40,7 @@ public abstract class BaseScalaFileSetTestCase extends ScalaFileSetTestCase {
 
   public abstract String transform(String testName, String[] data) throws Exception;
 
-  protected void runTest(final File myTestFile) throws Throwable {
+  public void runTest(final File myTestFile) throws Throwable {
 
     String content = new String(FileUtil.loadFileText(myTestFile, "UTF-8"));
     Assert.assertNotNull(content);
