@@ -63,7 +63,7 @@ class ScObjectImpl(stub: ScTemplateDefinitionStub[ScObject],
 
   override def getName: String = {
     if (isPackageObject) return "package$"
-    super.getName + "$"
+    super.getName
   }
 
   // TODO Should be unified, see ScModifierListOwner
