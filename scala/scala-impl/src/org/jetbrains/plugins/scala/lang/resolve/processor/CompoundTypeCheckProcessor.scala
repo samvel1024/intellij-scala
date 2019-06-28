@@ -24,11 +24,13 @@ import org.jetbrains.plugins.scala.lang.resolve.{ResolveTargets, StdKinds}
  * @author Alexander Podkhalyuzin
  */
 
-class CompoundTypeCheckSignatureProcessor(s: TermSignature, retType: ScType,
-                                          constraints: ConstraintSystem, substitutor: ScSubstitutor)
-  extends BaseProcessor(StdKinds.methodRef + ResolveTargets.CLASS)(s.projectContext) {
 
-  private def nameHint: NameHint = _ => s.name
+class CompoundTypeCheckSignatureProcessor(
+  s:           TermSignature,
+  constraints: ConstraintSystem,
+  substitutor: ScSubstitutor
+) extends BaseProcessor(StdKinds.methodRef + ResolveTargets.CLASS)(s.projectContext) {
+    private def nameHint: NameHint = _ => s.name
 
   override def getHint[T](hintKey: Key[T]): T =
     if (hintKey == NameHint.KEY) nameHint.asInstanceOf[T]
@@ -122,7 +124,7 @@ class CompoundTypeCheckSignatureProcessor(s: TermSignature, retType: ScType,
       val unified2 = substitutor.withBindings(otherTypeParams, typeParams)
 
       val bType = unified1(subst(returnType))
-      val gType = unified2(substitutor(retType))
+      val gType = unified2(s.returnType())
       t = bType.conforms(gType, undef)
       if (t.isRight) {
         trueResult = true

@@ -34,7 +34,7 @@ final case class ScThisType(element: ScTemplateDefinition) extends DesignatorOwn
 
   override val isSingleton = true
 
-  override private[types] def designatorSingletonType = None
+  override private[types] def designatorSingletonType: Option[ScType] = element.`type`().toOption
 
   override def equivInner(`type`: ScType, constraints: ConstraintSystem, falseUndef: Boolean): ConstraintsResult = {
     (this, `type`) match {

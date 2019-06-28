@@ -16,7 +16,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.ScTypeDefinitio
 import org.jetbrains.plugins.scala.lang.psi.impl.toplevel.synthetic.ScSyntheticClass
 import org.jetbrains.plugins.scala.lang.psi.types.ScalaConformance._
 import org.jetbrains.plugins.scala.lang.psi.types.api._
-import org.jetbrains.plugins.scala.lang.psi.types.api.designator.{ScDesignatorType, ScProjectionType, ScThisType}
+import org.jetbrains.plugins.scala.lang.psi.types.api.designator.{DesignatorOwner, ScDesignatorType, ScProjectionType, ScThisType}
 import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.{NonValueType, ScMethodType, ScTypePolymorphicType}
 import org.jetbrains.plugins.scala.lang.psi.types.recursiveUpdate.AfterUpdate.{ProcessSubtypes, ReplaceWith, Stop}
 import org.jetbrains.plugins.scala.lang.psi.types.recursiveUpdate.ScSubstitutor
@@ -655,8 +655,8 @@ trait ScalaConformance extends api.Conformance with TypeVariableUnification {
       T                             === t2
       U1	with	. . .	with	Un       === comps1
       Un                            === compn*/
-      def workWithSignature(s: TermSignature, retType: ScType): Boolean = {
-        val processor = new CompoundTypeCheckSignatureProcessor(s,retType, constraints, s.substitutor)
+      def workWithSignature(s: TermSignature): Boolean = {
+        val processor = new CompoundTypeCheckSignatureProcessor(s,  constraints, s.substitutor)
         processor.processType(r, s.namedElement)
         constraints = processor.getConstraints
         processor.getResult
@@ -680,7 +680,7 @@ trait ScalaConformance extends api.Conformance with TypeVariableUnification {
         constraints = t.constraints
         t.isRight
       }) && c.signatureMap.forall {
-        case (s: TermSignature, retType) => workWithSignature(s, retType)
+        case (_, sig) => workWithSignature(sig)
       } && c.typesMap.forall {
         case (_, sign) => workWithTypeAlias(sign)
       }
@@ -1264,8 +1264,12 @@ trait ScalaConformance extends api.Conformance with TypeVariableUnification {
       r.visitType(rightVisitor)
       if (result == null) {
         r match {
-          case lit: ScLiteralType if lit.allowWiden && !u.typeParameter.upperType.conforms(Singleton) =>
-            result = conformsInner(l, lit.wideType, visited, constraints, checkWeak)
+          case singleton @ (_: ScLiteralType | _: DesignatorOwner) if !u.typeParameter.upperType.conforms(Singleton) =>
+            val widened = singleton.widen
+            result =
+              if (widened ne singleton)
+                conformsInner(l, widened, visited, constraints, checkWeak)
+              else constraints.withLower(u.typeParameter.typeParamId, singleton)
           case lit: ScLiteralType =>
             result = constraints.withLower(u.typeParameter.typeParamId, lit.blockWiden)
           case _ =>

@@ -4,8 +4,7 @@ package intention
 package types
 
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.project.Project
-import com.intellij.psi.{PsiElement, PsiMethod}
+import com.intellij.psi.PsiElement
 import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.lang.psi.ScalaPsiUtil
 import org.jetbrains.plugins.scala.lang.psi.api.base.patterns.{ScBindingPattern, ScTypedPattern, ScWildcardPattern}
@@ -13,8 +12,8 @@ import org.jetbrains.plugins.scala.lang.psi.api.base.types.ScTypeElement
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
 import org.jetbrains.plugins.scala.lang.psi.api.statements._
 import org.jetbrains.plugins.scala.lang.psi.api.statements.params.{ScParameter, ScParameterClause}
+import org.jetbrains.plugins.scala.lang.psi.api.toplevel.ScNamedElement
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.{ScMember, ScTypeDefinition}
-import org.jetbrains.plugins.scala.lang.psi.api.toplevel.{ScNamedElement, ScTypedDefinition}
 import org.jetbrains.plugins.scala.lang.psi.impl.ScalaPsiElementFactory._
 import org.jetbrains.plugins.scala.lang.psi.impl.toplevel.typedef.TypeDefinitionMembers
 import org.jetbrains.plugins.scala.lang.psi.types.api.{FunctionType, ScTypeText}
@@ -138,21 +137,6 @@ class AddOnlyStrategy(editor: Option[Editor] = None) extends Strategy {
   }
 
   private def typeForMember(element: ScMember): Option[ScType] = {
-
-    def signatureType(sign: TermSignature): Option[ScType] = {
-      val substitutor = sign.substitutor
-      sign.namedElement match {
-        case f: ScFunction =>
-          f.returnType.toOption.map(substitutor)
-        case m: PsiMethod =>
-          implicit val ctx: Project = m.getProject
-          Option(m.getReturnType).map(psiType => substitutor(psiType.toScType()))
-        case t: ScTypedDefinition =>
-          t.`type`().toOption.map(substitutor)
-        case _ => None
-      }
-    }
-
     def superSignatures(member: ScMember): Seq[TermSignature] = {
       val named = member match {
         case n: ScNamedElement => n
@@ -196,9 +180,8 @@ class AddOnlyStrategy(editor: Option[Editor] = None) extends Strategy {
     if (shouldTrySuperMember) {
       val supers = superSignatures(element).iterator
       supers
-        .map(signatureType)
-        .find(_.nonEmpty)
-        .flatten
+        .map(_.returnType())
+        .find(t => !t.isAny)
     }
     else computedType
   }

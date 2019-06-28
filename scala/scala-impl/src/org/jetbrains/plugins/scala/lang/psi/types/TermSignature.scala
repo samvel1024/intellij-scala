@@ -27,21 +27,26 @@ import org.jetbrains.plugins.scala.project.{ProjectContext, ProjectContextOwner}
 
 import scala.collection.{Seq, mutable}
 
-class TermSignature(_name: String,
-                    private val typesEval: Seq[Seq[() => ScType]],
-                    private val tParams: Seq[TypeParameter],
-                    val substitutor: ScSubstitutor,
-                    val namedElement: PsiNamedElement,
-                    val hasRepeatedParam: Array[Int] = Array.empty) extends Signature with ProjectContextOwner {
+class TermSignature(
+  rawName:                    String,
+  private val paramTypesEval: Seq[Seq[() => ScType]],
+  private val returnTypeEval: () => ScType,
+  private val tParams:        Seq[TypeParameter],
+  val substitutor:            ScSubstitutor,
+  val namedElement:           PsiNamedElement,
+  val hasRepeatedParam:       Array[Int] = Array.empty
+) extends Signature with ProjectContextOwner {
 
   override implicit def projectContext: ProjectContext = namedElement
 
-  val name: String = ScalaNamesUtil.clean(_name)
+  val name: String                 = ScalaNamesUtil.clean(rawName)
+  val paramClauseSizes: Array[Int] = paramTypesEval.map(_.length).toArray
+  val paramLength: Int             = paramClauseSizes.arraySum
 
-  val paramClauseSizes: Array[Int] = typesEval.map(_.length).toArray
-  val paramLength: Int = paramClauseSizes.arraySum
+  def paramTypes: Seq[Seq[() => ScType]] =
+    paramTypesEval.map(_.map(f => () => substitutor(f()).unpackedType))
 
-  def substitutedTypes: Seq[Seq[() => ScType]] = typesEval.map(_.map(f => () => substitutor(f()).unpackedType))
+  def returnType: () => ScType = () => substitutor(returnTypeEval())
 
   def typeParams: Seq[TypeParameter] = tParams.map(_.update(substitutor))
 
@@ -65,7 +70,7 @@ class TermSignature(_name: String,
   def javaErasedEquiv(other: TermSignature): Boolean = {
     (this, other) match {
       case (ps1: PhysicalMethodSignature, ps2: PhysicalMethodSignature) if ps1.isJava && ps2.isJava =>
-        implicit val elementScope = ps1.method.elementScope
+        implicit val elementScope: ElementScope = ps1.method.elementScope
         val psiSub1 = ScalaPsiUtil.getPsiSubstitutor(ps1.substitutor)
         val psiSub2 = ScalaPsiUtil.getPsiSubstitutor(ps2.substitutor)
         val psiSig1 = ps1.method.getSignature(psiSub1)
@@ -90,8 +95,8 @@ class TermSignature(_name: String,
 
     val depParamTypeSubst = depParamTypeSubstitutor(other)
     val unified = other.substitutor.withBindings(typeParams, other.typeParams)
-    val clauseIterator = substitutedTypes.iterator
-    val otherClauseIterator = other.substitutedTypes.iterator
+    val clauseIterator = paramTypes.iterator
+    val otherClauseIterator = other.paramTypes.iterator
     var lastConstraints = constraints
     while (clauseIterator.hasNext && otherClauseIterator.hasNext) {
       val clause1 = clauseIterator.next()
@@ -120,7 +125,8 @@ class TermSignature(_name: String,
   }
 
   override def equals(that: Any): Boolean = that match {
-    case s: TermSignature => isCompatibleParameterSizes(s) && parameterlessKind == s.parameterlessKind && equiv(s)
+    case s: TermSignature =>
+      isCompatibleParameterSizes(s) && parameterlessKind == s.parameterlessKind && equiv(s)
     case _ => false
   }
 
@@ -196,15 +202,24 @@ class TermSignature(_name: String,
 }
 
 object TermSignature {
+  def apply(
+    name:         String,
+    paramTypes:   Seq[() => ScType],
+    returnType:   () => ScType,
+    substitutor:  ScSubstitutor,
+    namedElement: PsiNamedElement
+  ): TermSignature =
+    new TermSignature(name, List(paramTypes), returnType, Seq.empty, substitutor, namedElement)
 
-  def apply(name: String, paramTypes: Seq[() => ScType], substitutor: ScSubstitutor, namedElement: PsiNamedElement): TermSignature =
-    new TermSignature(name, List(paramTypes), Seq.empty, substitutor, namedElement)
-
-  def apply(definition: PsiNamedElement, substitutor: ScSubstitutor = ScSubstitutor.empty): TermSignature = definition match {
-    case function: ScFunction =>
+  def apply(
+    definition:  PsiNamedElement,
+    substitutor: ScSubstitutor = ScSubstitutor.empty
+  ): TermSignature = definition match {
+    case function: PsiMethod =>
       new TermSignature(
         function.name,
         PhysicalMethodSignature.typesEval(function),
+        PhysicalMethodSignature.returnTypeEval(function),
         function.getTypeParameters.instantiate,
         substitutor,
         function,
@@ -214,36 +229,54 @@ object TermSignature {
       new TermSignature(
         definition.name,
         Seq.empty,
+        namedPsiElementTypeEval(definition),
         Seq.empty,
         substitutor,
         definition
       )
   }
 
-  def withoutParams(name: String, subst: ScSubstitutor, namedElement: PsiNamedElement): TermSignature =
-    TermSignature(name, Seq.empty, subst, namedElement)
+  private[this] def namedPsiElementTypeEval(e: PsiNamedElement)(): ScType = e match {
+    case variable: PsiVariable => variable.getType.toScType()(e)
+    case Typeable(tpe)         => tpe
+    case _                     => Any(e)
+  }
 
-  def setter(name: String, definition: ScTypedDefinition, subst: ScSubstitutor = ScSubstitutor.empty) = TermSignature(
+  def withoutParams(
+    name:         String,
+    returnType:   () => ScType,
+    subst:        ScSubstitutor,
+    namedElement: PsiNamedElement
+  ): TermSignature =
+    TermSignature(name, Seq.empty, returnType, subst, namedElement)
+
+  def setter(
+    name:       String,
+    definition: ScTypedDefinition,
+    subst:      ScSubstitutor = ScSubstitutor.empty
+  ) = TermSignature(
     name,
     Seq(() => definition.`type`().getOrAny),
+    () => definition.projectContext.stdTypes.Unit,
     subst,
     definition
   )
 
-  def scalaSetter(definition: ScTypedDefinition, subst: ScSubstitutor = ScSubstitutor.empty) =
+  def scalaSetter(
+    definition: ScTypedDefinition,
+    subst:      ScSubstitutor = ScSubstitutor.empty
+  ): TermSignature =
     setter(methodName(definition.name, PropertyMethods.EQ), definition, subst)
 
-  private val Parameterless = 1
+  private val Parameterless    = 1
   private val EmptyParentheses = 2
-  private val ScalaVal = 3
-  private val JavaField = 4
-  private val HasParameters = 5
+  private val ScalaVal         = 3
+  private val JavaField        = 4
+  private val HasParameters    = 5
 }
 
-
-
-import com.intellij.psi.PsiMethod
 object PhysicalMethodSignature {
+  @scala.annotation.tailrec
   def typesEval(method: PsiMethod): List[Seq[() => ScType]] = method match {
     case fun: ScFunction =>
       fun.effectiveParameterClauses.toList
@@ -257,6 +290,14 @@ object PhysicalMethodSignature {
         case p => p.getParameters.toSeq.map(p => () => javaParamType(p))
       }
       List(lazyParamTypes)
+  }
+
+  @scala.annotation.tailrec
+  def returnTypeEval(method: PsiMethod): () => ScType = method match {
+    case fun: ScFunction                      => () => fun.returnType.getOrAny
+    case wrapper: ScFunctionWrapper           => returnTypeEval(wrapper.delegate)
+    case wrapper: ScPrimaryConstructorWrapper => returnTypeEval(wrapper.delegate)
+    case _                                    => () => method.getReturnType.toScType()(method)
   }
 
   def hasRepeatedParam(method: PsiMethod): Array[Int] = {
@@ -319,6 +360,7 @@ class PhysicalMethodSignature(val method: PsiMethod, override val substitutor: S
         extends TermSignature(
           method.name,
           PhysicalMethodSignature.typesEval(method),
+          PhysicalMethodSignature.returnTypeEval(method),
           method.getTypeParameters.instantiate,
           substitutor,
           method,

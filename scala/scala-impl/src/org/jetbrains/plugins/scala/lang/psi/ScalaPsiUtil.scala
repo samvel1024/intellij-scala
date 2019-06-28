@@ -502,68 +502,63 @@ object ScalaPsiUtil {
     isPlaceTdAncestor(td, newTd)
   }
 
-  def namedElementSig(x: PsiNamedElement): TermSignature =
-    TermSignature(x.name, Seq.empty, ScSubstitutor.empty, x)
-
-  def superValsSignatures(x: PsiNamedElement, withSelfType: Boolean = false): Seq[TermSignature] = {
-    val empty = Seq.empty
-    val typed: ScTypedDefinition = x match {
-      case x: ScTypedDefinition => x
-      case _ => return empty
-    }
-    val clazz: ScTemplateDefinition = typed.nameContext match {
-      case e@(_: ScValue | _: ScVariable | _: ScObject) if e.getParent.isInstanceOf[ScTemplateBody] ||
-        e.getParent.isInstanceOf[ScEarlyDefinitions] =>
-        e.asInstanceOf[ScMember].containingClass
-      case e: ScClassParameter if e.isClassMember => e.containingClass
-      case _ => return empty
-    }
-    if (clazz == null) return empty
-    val s = namedElementSig(x)
-    val signatures =
-      if (withSelfType) TypeDefinitionMembers.getSelfTypeSignatures(clazz)
-      else TypeDefinitionMembers.getSignatures(clazz)
-    val sigs = signatures.forName(x.name)
-    var res: Seq[TermSignature] = (sigs.get(s): @unchecked) match {
-      //partial match
-      case Some(node) if !withSelfType || node.info.namedElement == x => node.supers.map {
-        _.info
+  def superValsSignatures(e: PsiNamedElement, withSelfType: Boolean = false): Seq[TermSignature] = e match {
+    case typed: ScTypedDefinition =>
+      val enclosingClass: ScTemplateDefinition = typed.nameContext match {
+        case e@(_: ScValue | _: ScVariable | _: ScObject) if e.getParent.isInstanceOf[ScTemplateBody] ||
+          e.getParent.isInstanceOf[ScEarlyDefinitions] =>
+          e.asInstanceOf[ScMember].containingClass
+        case e: ScClassParameter if e.isClassMember => e.containingClass
+        case _ => return Seq.empty
       }
-      case Some(node) =>
-        node.supers.map {
+
+      if (enclosingClass eq null) return Seq.empty
+
+      val s = TermSignature(typed)
+      val signatures =
+        if (withSelfType) TypeDefinitionMembers.getSelfTypeSignatures(enclosingClass)
+        else              TypeDefinitionMembers.getSignatures(enclosingClass)
+
+      val sigs = signatures.forName(typed.name)
+      var res: Seq[TermSignature] = (sigs.get(s): @unchecked) match {
+        //partial match
+        case Some(node) if !withSelfType || node.info.namedElement == typed => node.supers.map {
           _.info
-        }.filter {
-          _.namedElement != x
-        } :+ node.info
-      case None =>
-        //this is possible case: private member of library source class.
-        //Problem is that we are building signatures over decompiled class.
-        Seq.empty
-    }
-
-
-    val beanMethods = getBeanMethods(typed)
-    beanMethods.foreach {
-      method =>
-        val sigs = TypeDefinitionMembers.getSignatures(clazz).forName(method.name)
-        (sigs.get(new PhysicalMethodSignature(method, ScSubstitutor.empty)): @unchecked) match {
-          //partial match
-          case Some(node) if !withSelfType || node.info.namedElement == method => res ++= node.supers.map {
-            _.info
-          }
-          case Some(node) =>
-            res +:= node.info
-            res ++= node.supers.map {
-              _.info
-            }.filter {
-              _.namedElement != method
-            }
-          case None =>
         }
-    }
+        case Some(node) =>
+          node.supers.map {
+            _.info
+          }.filter {
+            _.namedElement != typed
+          } :+ node.info
+        case None =>
+          //this is possible case: private member of library source class.
+          //Problem is that we are building signatures over decompiled class.
+          Seq.empty
+      }
 
-    res
+      val beanMethods = getBeanMethods(typed)
+      beanMethods.foreach {
+        method =>
+          val sigs = TypeDefinitionMembers.getSignatures(enclosingClass).forName(method.name)
+          (sigs.get(new PhysicalMethodSignature(method, ScSubstitutor.empty)): @unchecked) match {
+            //partial match
+            case Some(node) if !withSelfType || node.info.namedElement == method => res ++= node.supers.map {
+              _.info
+            }
+            case Some(node) =>
+              res +:= node.info
+              res ++= node.supers.map {
+                _.info
+              }.filter {
+                _.namedElement != method
+              }
+            case None =>
+          }
+      }
 
+      res
+    case _ => Seq.empty
   }
 
   def superTypeMembers(element: PsiNamedElement,
@@ -1419,7 +1414,7 @@ object ScalaPsiUtil {
             val signaturesByName = TypeDefinitionMembers.getSignatures(td).forName(pat.name + "_=").iterator
             signaturesByName.exists { sig =>
               sig.paramClauseSizes === Array(1) &&
-                actualType.conforms(sig.substitutedTypes.head.head.apply())
+                actualType.conforms(sig.paramTypes.head.head.apply())
             }
           case _ => false
         }

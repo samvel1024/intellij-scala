@@ -229,6 +229,11 @@ package object types {
       case _ => false
     }
 
+    def widen: ScType = scType match {
+      case lit: ScLiteralType => if (lit.allowWiden) lit.wideType else lit
+      case other              => other.tryExtractDesignatorSingleton
+    }
+
     def tryWrapIntoSeqType(implicit scope: ElementScope): ScType =
       scope
         .getCachedClass("scala.collection.Seq")

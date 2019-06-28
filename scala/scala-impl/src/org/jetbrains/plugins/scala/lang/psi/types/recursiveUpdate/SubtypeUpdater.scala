@@ -12,17 +12,35 @@ private abstract class SubtypeUpdater(needVariance: Boolean, needUpdate: Boolean
 
   protected implicit def implicitThis: SubtypeUpdater = this
 
-  def updateCompoundType(ct: ScCompoundType,
-                         variance: Variance,
-                         substitutor: ScSubstitutor)
-                        (implicit visited: Set[ScType]): ScType = {
+  def updateCompoundType(
+    ct:          ScCompoundType,
+    variance:    Variance,
+    substitutor: ScSubstitutor
+  )(implicit
+    visited: Set[ScType]
+  ): ScType = {
 
     val updSignatureMap = ct.signatureMap.map {
-      case (s: TermSignature, tp) =>
+      case (s, _) =>
         val tParams = s.typeParams.map(updateTypeParameter(_, substitutor, Invariant))
-        val paramTypes = s.substitutedTypes.map(_.map(f => () => substitutor.recursiveUpdateImpl(f(), variance, isLazySubtype = true)))
-        val updSignature = new TermSignature(s.name, paramTypes, tParams, s.substitutor.followed(substitutor), s.namedElement, s.hasRepeatedParam)
-        (updSignature, substitutor.recursiveUpdateImpl(tp, Covariant))
+
+        val paramTypes = s.paramTypes.map(
+          _.map(f => () => substitutor.recursiveUpdateImpl(f(), variance, isLazySubtype = true))
+        )
+
+        val returnType =
+          () => substitutor.recursiveUpdateImpl(s.returnType(), variance, isLazySubtype = true)
+
+        val updSignature = new TermSignature(
+          s.name,
+          paramTypes,
+          returnType,
+          tParams,
+          s.substitutor.followed(substitutor),
+          s.namedElement,
+          s.hasRepeatedParam
+        )
+        (updSignature, updSignature)
     }
 
     val updatedTypes = ct.typesMap.map {
@@ -32,7 +50,15 @@ private abstract class SubtypeUpdater(needVariance: Boolean, needUpdate: Boolean
         val substUpper: ScType = substitutor.recursiveUpdateImpl(ta.upperBound)
         val combinedSubstitutor: ScSubstitutor = ta.substitutor.followed(substitutor)
 
-        (s, TypeAliasSignature(ta.typeAlias, ta.name, substTps, substLower, substUpper, ta.isDefinition, combinedSubstitutor))
+        s -> TypeAliasSignature(
+          ta.typeAlias,
+          ta.name,
+          substTps,
+          substLower,
+          substUpper,
+          ta.isDefinition,
+          combinedSubstitutor
+        )
     }
     val updatedComponents = ct.components.smartMap(substitutor.recursiveUpdateImpl(_, variance))
 

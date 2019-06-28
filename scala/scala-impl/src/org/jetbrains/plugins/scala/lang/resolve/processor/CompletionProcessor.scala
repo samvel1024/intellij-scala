@@ -19,16 +19,14 @@ import scala.collection.{Set, mutable}
 
 object CompletionProcessor {
 
-  private def getSignature(element: PsiNamedElement, substitutor: ScSubstitutor): Option[TermSignature] = element match {
-    case method: PsiMethod => Some(new PhysicalMethodSignature(method, substitutor))
-    case _: ScTypeAlias |
-         _: PsiClass => None
-    case _ => Some(TermSignature(element, substitutor))
+  private def getSignature(
+    element:     PsiNamedElement,
+    substitutor: ScSubstitutor
+  ): Option[TermSignature] = element match {
+    case method: PsiMethod            => Option(new PhysicalMethodSignature(method, substitutor))
+    case _: ScTypeAlias | _: PsiClass => None
+    case _                            => Option(TermSignature(element, substitutor))
   }
-
-  private def findByKey[T](key: Key[T])
-                          (implicit state: ResolveState): Option[T] =
-    Option(state.get(key))
 
   private def createResolveResults(candidates: Seq[(PsiNamedElement, Boolean)],
                                    substitutor: ScSubstitutor,

@@ -9,15 +9,18 @@ import com.intellij.psi.PsiClass
 import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.lang.psi.api.statements._
 import org.jetbrains.plugins.scala.lang.psi.types.api.designator.ScDesignatorType
+import org.jetbrains.plugins.scala.lang.psi.types.api._
 import org.jetbrains.plugins.scala.project.ProjectContext
 
-import scala.collection.mutable
+import scala.collection.immutable.HashMap
 
 final case class ScCompoundType private(
   components:   Seq[ScType],
-  signatureMap: Map[TermSignature, ScType]          = Map.empty,
-  typesMap:     Map[String, TypeAliasSignature] = Map.empty
-                                       )(implicit override val projectContext: ProjectContext) extends ScalaType with api.ValueType {
+  signatureMap: Map[TermSignature, TermSignature] = Map.empty,
+  typesMap:     Map[String, TypeAliasSignature]   = Map.empty
+)(implicit
+  override val projectContext: ProjectContext
+) extends ScalaType with api.ValueType {
 
   private var hash: Int = -1
 
@@ -33,8 +36,8 @@ final case class ScCompoundType private(
 
   override def typeDepth: Int = {
     val depths = signatureMap.map {
-      case (sign: TermSignature, tp: ScType) =>
-        tp.typeDepth
+      case (_, sign) =>
+        sign.returnType().typeDepth
           .max(sign.typeParams.depth)
     } ++ typesMap.map {
       case (_: String, signature: TypeAliasSignature) =>
@@ -68,11 +71,11 @@ final case class ScCompoundType private(
 
         val iterator2 = signatureMap.iterator
         while (iterator2.hasNext) {
-          val (sig, t) = iterator2.next()
+          val (_, sig) = iterator2.next()
           r.signatureMap.get(sig) match {
             case None => return ConstraintsResult.Left
-            case Some(t1) =>
-              val f = t.equiv(t1, lastConstraints, falseUndef)
+            case Some(sig2) =>
+              val f = sig.returnType().equiv(sig2.returnType(), lastConstraints, falseUndef)
 
               if (f.isLeft) return ConstraintsResult.Left
               lastConstraints = f.constraints
@@ -125,8 +128,8 @@ final case class ScCompoundType private(
 object ScCompoundType {
   def apply(
     components:   Seq[ScType],
-    signatureMap: Map[TermSignature, ScType]          = Map.empty,
-    typesMap:     Map[String, TypeAliasSignature] = Map.empty
+    signatureMap: Map[TermSignature, TermSignature] = Map.empty,
+    typesMap:     Map[String, TypeAliasSignature]   = Map.empty
   )(implicit projectContext: ProjectContext): ScCompoundType = {
     val (comps, sigs, types) =
       components.foldLeft((Seq.empty[ScType], signatureMap, typesMap)) {
@@ -138,31 +141,26 @@ object ScCompoundType {
     new ScCompoundType(comps.distinct, sigs, types)
   }
 
-
   def fromPsi(components: Seq[ScType], decls: Seq[ScDeclaredElementsHolder], typeDecls: Seq[ScTypeAlias])
              (implicit projectContext: ProjectContext): ScCompoundType = {
-    val signatureMapVal = mutable.HashMap.empty[TermSignature, ScType]
+    val signaturesMap = HashMap.newBuilder[TermSignature, TermSignature]
+    def addSignature(sig: TermSignature): Unit = signaturesMap += (sig -> sig)
 
     for (decl <- decls) {
       decl match {
-        case fun: ScFunction => signatureMapVal += ((TermSignature(fun), fun.returnType.getOrAny))
-        case varDecl: ScVariable =>
-          signatureMapVal ++= varDecl.declaredElements.map {
-            e => (TermSignature(e), e.`type`().getOrAny)
-          }
-          signatureMapVal ++= varDecl.declaredElements.map {
-            e => (TermSignature(e), e.`type`().getOrAny)
-          }
-        case valDecl: ScValue =>
-          signatureMapVal ++= valDecl.declaredElements.map {
-            e => (TermSignature(e), e.`type`().getOrAny)
-          }
+        case fun: ScFunction => addSignature(TermSignature(fun))
+        case varOrVal: ScValueOrVariable =>
+          varOrVal.declaredElements.flatMap { e =>
+            val setterSignature = e.isVar.seq(TermSignature.scalaSetter(e))
+            setterSignature :+ TermSignature(e)
+          }.foreach(addSignature)
+        case _ => ()
       }
     }
 
     ScCompoundType(
       components,
-      signatureMapVal.toMap,
+      signaturesMap.result(),
       typeDecls.map {
         typeDecl => (typeDecl.name, TypeAliasSignature(typeDecl))
       }.toMap)

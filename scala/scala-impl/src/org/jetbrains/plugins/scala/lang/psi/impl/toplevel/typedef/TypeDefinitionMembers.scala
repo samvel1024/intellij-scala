@@ -109,7 +109,12 @@ object TypeDefinitionMembers {
       }
 
       for (field <- clazz.getFields) {
-        val sig = TermSignature.withoutParams(field.getName, subst, field)
+        val sig = TermSignature.withoutParams(
+          field.getName,
+          () => field.getType.toScType()(clazz),
+          subst,
+          field
+        )
         addToMap(sig, map)
       }
     }
@@ -174,10 +179,10 @@ object TypeDefinitionMembers {
         .map(signature(named, subst, _))
         .foreach(addSignature)
     }
-    
+
     private def signature(named: ScTypedDefinition, subst: ScSubstitutor, role: DefinitionRole): TermSignature = role match {
       case SETTER | EQ => TermSignature.setter(methodName(named.name, role), named, subst)
-      case _           => TermSignature.withoutParams(methodName(named.name, role), subst, named)
+      case _           => TermSignature.withoutParams(methodName(named.name, role), () => named.`type`().getOrAny, subst, named)
     }
 
     private def syntheticSignaturesFromInnerClass(td: ScTypeDefinition, subst: ScSubstitutor): Seq[TermSignature] = {
@@ -548,11 +553,11 @@ object TypeDefinitionMembers {
 
     val syntheticMethods = signature.namedElement match {
       case t: ScTypedDefinition if isProperty(t) =>
-         if (nameHint.isEmpty) getPropertyMethod(t, EQ) ++: getBeanMethods(t)
-         else methodRole(sigName, t.name).flatMap(getPropertyMethod(t, _)).toSeq
+        if (nameHint.isEmpty) getPropertyMethod(t, EQ).toSeq ++ getBeanMethods(t)
+        else                  methodRole(sigName, t.name).flatMap(getPropertyMethod(t, _)).toSeq
       case _ => Seq.empty
     }
-    syntheticMethods.map(TermSignature(_, signature.substitutor))
+    syntheticMethods.map(new PhysicalMethodSignature(_, signature.substitutor))
   }
 
   private implicit class TermNodeIteratorOps(override val iterator: Iterator[MixinNodes.Node[TermSignature]]) extends AnyVal

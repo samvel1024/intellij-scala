@@ -11,7 +11,7 @@ trait ScType extends project.ProjectContextOwner {
 
   def typeSystem: api.TypeSystem = projectContext.typeSystem
 
-  private var aliasType: Option[AliasType] = null
+  private var aliasType: Option[AliasType] = _
 
   final def isAliasType: Option[AliasType] = {
     if (aliasType == null) {
@@ -21,7 +21,7 @@ trait ScType extends project.ProjectContextOwner {
     aliasType
   }
 
-  private var unpacked: ScType = null
+  private var unpacked: ScType = _
 
   final def unpackedType: ScType = {
     if (unpacked == null) {
