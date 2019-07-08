@@ -45,6 +45,7 @@
         <projectTaskRunner implementation="org.jetbrains.bsp.project.BspProjectTaskRunner"/>
         <!--<postStartupActivity implementation="org.jetbrains.bsp.BspStartupActivity"/>-->
         <applicationInitializedListener implementation="org.jetbrains.bsp.StartupRoutine"/>
+        <configurationType implementation="org.jetbrains.bsp.runconfig.BSPRunConfigurationType"/>
 
     </extensions>
 
