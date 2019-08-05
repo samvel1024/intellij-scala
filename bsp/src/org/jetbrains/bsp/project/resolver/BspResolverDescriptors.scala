@@ -9,6 +9,8 @@ import org.jetbrains.bsp.data.{SbtBuildModuleDataBsp, ScalaSdkData}
 
 private[resolver] object BspResolverDescriptors {
 
+  private[resolver] type TestClassId = String
+
   private[resolver] case class ModuleDescription(data: ModuleDescriptionData,
                                                  moduleKindData: ModuleKind)
 
@@ -25,7 +27,8 @@ private[resolver] object BspResolverDescriptors {
                                                      classpath: Seq[File],
                                                      classpathSources: Seq[File],
                                                      testClasspath: Seq[File],
-                                                     testClasspathSources: Seq[File])
+                                                     testClasspathSources: Seq[File],
+                                                     testClasses: Seq[TestClassId])
 
   private[resolver] case class ProjectModules(modules: Seq[ModuleDescription], synthetic: Seq[ModuleDescription])
 
@@ -40,7 +43,8 @@ private[resolver] object BspResolverDescriptors {
 
   private[resolver] case class TargetData(sources: Either[BspError, SourcesResult],
                                           dependencySources: Either[BspError, DependencySourcesResult],
-                                          scalacOptions: Either[BspError, ScalacOptionsResult] // TODO should be optional
+                                          scalacOptions: Either[BspError, ScalacOptionsResult], // TODO should be optional
+                                          scalaTestClasses: Either[BspError, ScalaTestClassesResult]
                                          )
 
   private[resolver] case class SourceDirectory(directory: File, generated: Boolean)

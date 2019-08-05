@@ -46,23 +46,8 @@ class BspProjectTaskRunner extends ProjectTaskRunner {
       case task: ModuleBuildTask => task
     }
 
-    val dataManager = ProjectDataManager.getInstance()
-
     val targets = validTasks.flatMap { task =>
-      val moduleId = ES.getExternalProjectId(task.getModule)
-
-      def predicate(node: DataNode[ModuleData]) = node.getData.getId == moduleId
-      // TODO all these options fail silently. collect errors and report something
-      val targetIds = for {
-        projectInfo <- Option(dataManager.getExternalProjectData(project, BSP.ProjectSystemId, project.getBasePath))
-        projectStructure <- Option(projectInfo.getExternalProjectStructure)
-        moduleDataNode <- Option(ES.find(projectStructure, ProjectKeys.MODULE, predicate))
-        metadata <- Option(ES.find(moduleDataNode, BspMetadata.Key))
-      } yield {
-        metadata.getData.targetIds.asScala.toList
-      }
-
-      targetIds.getOrElse(List.empty)
+       BspMetadata.get(project, task.getModule).map(_.targetIds.asScala.toList).getOrElse(List.empty)
     }
 
     def onComplete(): Unit = {

@@ -70,8 +70,8 @@ private[resolver] object BspResolverLogic {
   private[resolver] def calculateModuleDescriptions(buildTargets: Seq[BuildTarget],
                                                     optionsItems: Seq[ScalacOptionsItem],
                                                     sourcesItems: Seq[SourcesItem],
-                                                    dependencySourcesItems: Seq[DependencySourcesItem]
-                                                   ): ProjectModules = {
+                                                    dependencySourcesItems: Seq[DependencySourcesItem],
+                                                    testClasses: Seq[ScalaTestClassesItem]): ProjectModules = {
 
     implicit val gson: Gson = new Gson()
 
@@ -94,6 +94,10 @@ private[resolver] object BspResolverLogic {
       .map(item => (item.getTarget, sourceDirectories(item)))
       .toMap
 
+    val idToTestClasses: Map[BuildTargetIdentifier, Seq[TestClassId]] = testClasses
+      .map(item => (item.getTarget, item.getClasses.asScala))
+      .toMap
+
     val sharedSources = sharedSourceDirs(idToSources)
 
     val moduleDescriptions = buildTargets.flatMap { target: BuildTarget =>
@@ -103,9 +107,10 @@ private[resolver] object BspResolverLogic {
       val sources = idToSources
         .getOrElse(id, Seq.empty)
         .filterNot(sharedSources.contains)
+      val testClasses = idToTestClasses.getOrElse(id, Seq.empty)
       val dependencyOutputs = transitiveDependencyOutputs(target)
 
-      moduleDescriptionForTarget(target, scalacOptions, depSourcesOpt, sources, dependencyOutputs)
+      moduleDescriptionForTarget(target, scalacOptions, depSourcesOpt, sources, dependencyOutputs, testClasses)
     }
 
     val idToModule = (for {
@@ -163,6 +168,7 @@ private[resolver] object BspResolverLogic {
                                                    depSourcesOpt: Option[DependencySourcesItem],
                                                    sourceDirs: Seq[SourceDirectory],
                                                    dependencyOutputs: Seq[File],
+                                                   testClasses: Seq[TestClassId]
                                                   )(implicit gson: Gson): Option[ModuleDescription] = {
 
     val dependencySourcePaths = for {
@@ -215,7 +221,7 @@ private[resolver] object BspResolverLogic {
     } yield {
       val moduleDescriptionData = createModuleDescriptionData(
         Seq(target), tags, moduleBase, outputPath, sourceRoots,
-        classPathWithoutDependencyOutputs, dependencySourcePaths)
+        classPathWithoutDependencyOutputs, dependencySourcePaths, testClasses)
 
       ModuleDescription(moduleDescriptionData, moduleKind)
     }
@@ -227,7 +233,8 @@ private[resolver] object BspResolverLogic {
                                                     outputPath: Option[File],
                                                     sourceRoots: Seq[SourceDirectory],
                                                     classPath: Seq[File],
-                                                    dependencySources: Seq[File]
+                                                    dependencySources: Seq[File],
+                                                    testClasses: Seq[TestClassId]
                                                ): ModuleDescriptionData = {
     import BuildTargetTag._
 
@@ -248,7 +255,8 @@ private[resolver] object BspResolverLogic {
       None, None,
       Seq.empty, Seq.empty,
       Seq.empty, Seq.empty,
-      Seq.empty, Seq.empty
+      Seq.empty, Seq.empty,
+      Seq.empty
     )
 
     val targetDeps = targets.flatMap(_.getDependencies.asScala)
@@ -259,7 +267,7 @@ private[resolver] object BspResolverLogic {
         output = outputPath,
         sourceDirs = sourceRoots,
         classpath = classPath,
-        classpathSources = dependencySources,
+        classpathSources = dependencySources
       ) else dataBasic
 
     val data2 = if(tags.contains(TEST))
@@ -268,7 +276,8 @@ private[resolver] object BspResolverLogic {
         testOutput = outputPath,
         testSourceDirs = sourceRoots,
         testClasspath = classPath,
-        testClasspathSources = dependencySources
+        testClasspathSources = dependencySources,
+        testClasses = testClasses
       ) else data1
 
     // TODO ignore and warn about unsupported build target kinds? map to special module?
@@ -324,12 +333,13 @@ private[resolver] object BspResolverLogic {
         val classPathSources = mergeFiles(dataCombined.classpathSources, dataNext.classpathSources)
         val testClassPath = mergeFiles(dataCombined.testClasspath, dataNext.testClasspath)
         val testClassPathSources = mergeFiles(dataCombined.testClasspathSources, dataNext.testClasspathSources)
+        val testClasses = dataCombined.testClasses ++ dataNext.testClasses
 
         val newData = ModuleDescriptionData(
           dataCombined.id, dataCombined.name,
           targets, targetDependencies, targetTestDependencies, dataCombined.basePath,
           output, testOutput, sourceDirs, testSourceDirs,
-          classPath, classPathSources, testClassPath, testClassPathSources,
+          classPath, classPathSources, testClassPath, testClassPathSources, testClasses
         )
 
         combined.copy(data = newData)
@@ -460,9 +470,6 @@ private[resolver] object BspResolverLogic {
     val libraryTestDependencyData = new LibraryDependencyData(moduleData, libraryTestData, LibraryLevel.MODULE)
     libraryTestDependencyData.setScope(DependencyScope.TEST)
 
-    val targetIds = moduleDescriptionData.targets.map(_.getId.getUri.toURI)
-    val metadata = BspMetadata(targetIds.asJava)
-
     // data node wiring
 
     val moduleNode = new DataNode[ModuleData](ProjectKeys.MODULE, moduleData, projectNode)
@@ -481,6 +488,10 @@ private[resolver] object BspResolverLogic {
       val contentRootDataNode = new DataNode[ContentRootData](ProjectKeys.CONTENT_ROOT, data, moduleNode)
       moduleNode.addChild(contentRootDataNode)
     }
+
+    val targetIds = moduleDescriptionData.targets.map(_.getId.getUri.toURI)
+    val metadata = BspMetadata(targetIds.asJava, moduleDescriptionData.testClasses.asJava)
+
     val metadataNode = new DataNode[BspMetadata](BspMetadata.Key, metadata, moduleNode)
     moduleNode.addChild(metadataNode)
 

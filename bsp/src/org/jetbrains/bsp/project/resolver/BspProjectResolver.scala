@@ -1,8 +1,8 @@
 package org.jetbrains.bsp.project.resolver
 
 import java.io.File
-import java.util.Collections
 import java.util.concurrent.CompletableFuture
+import java.util.{Collections, UUID}
 
 import ch.epfl.scala.bsp4j._
 import com.intellij.openapi.externalSystem.model.DataNode
@@ -53,12 +53,14 @@ class BspProjectResolver extends ExternalSystemProjectResolver[BspExecutionSetti
               sources <- data.sources
               depSources <- data.dependencySources // TODO not required for project, should be warning
               scalacOptions <- data.scalacOptions // TODO not required for non-scala modules
+              testClasses <- data.scalaTestClasses
             } yield {
               val descriptions = calculateModuleDescriptions(
                 targets,
                 scalacOptions.getItems.asScala,
                 sources.getItems.asScala,
-                depSources.getItems.asScala
+                depSources.getItems.asScala,
+                testClasses.getItems.asScala
               )
               projectNode(projectRootPath, moduleFilesDirectoryPath, descriptions)
             }
@@ -147,7 +149,8 @@ object BspProjectResolver {
       val emptySources = Right[BspError,SourcesResult](new SourcesResult(Collections.emptyList()))
       val emptyDS = Right[BspError,DependencySourcesResult](new DependencySourcesResult(Collections.emptyList()))
       val emptySO = Right[BspError,ScalacOptionsResult](new ScalacOptionsResult(Collections.emptyList()))
-      CompletableFuture.completedFuture(TargetData(emptySources, emptyDS, emptySO))
+      val emptyTC = Right[BspError,ScalaTestClassesResult](new ScalaTestClassesResult(Collections.emptyList()))
+      CompletableFuture.completedFuture(TargetData(emptySources, emptyDS, emptySO, emptyTC))
     } else {
       val targets = targetIds.asJava
       val sourcesParams = new SourcesParams(targets)
@@ -156,14 +159,15 @@ object BspProjectResolver {
       val depSources = bsp.buildTargetDependencySources(depSourcesParams).catchBspErrors
       val scalacOptionsParams = new ScalacOptionsParams(targets)
       val scalacOptions = bsp.buildTargetScalacOptions(scalacOptionsParams).catchBspErrors
+      val testClassesParams = {
+        val p = new ScalaTestClassesParams(targets)
+        p.setOriginId(UUID.randomUUID().toString)
+        p
+      }
+      val testClasses = bsp.buildTargetScalaTestClasses(testClassesParams).catchBspErrors
 
-      sources
-        .thenCompose { src =>
-          depSources.thenCompose { ds =>
-            scalacOptions.thenApply { so =>
-              TargetData(src,ds,so)
-            }
-          }
-        }
+      CompletableFuture.allOf(sources, depSources, scalacOptions, testClasses)
+          .thenApply(_ => TargetData(sources.get(), depSources.get(), scalacOptions.get(), testClasses.get()))
+
     }
 }

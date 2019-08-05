@@ -54,7 +54,7 @@ class  BspResolverLogicProperties extends AssertionsForJUnit with Checkers {
   def `calculateModuleDescriptions succeeds for build targets with Scala`() : Unit = check(
     forAll(Gen.listOf(genScalaBuildTargetWithoutTags(List(BuildTargetTag.NO_IDE)))) { buildTargets: List[BuildTarget] =>
       forAll { (optionsItems: List[ScalacOptionsItem], sourcesItems: List[SourcesItem], dependencySourcesItems: List[DependencySourcesItem]) =>
-        val descriptions = calculateModuleDescriptions(buildTargets, optionsItems, sourcesItems, dependencySourcesItems)
+        val descriptions = calculateModuleDescriptions(buildTargets, optionsItems, sourcesItems, dependencySourcesItems, Seq.empty)
         val moduleIds = (descriptions.modules ++ descriptions.synthetic).map(_.data.id)
         val moduleForEveryTarget = (buildTargets.nonEmpty && buildTargets.exists(_.getBaseDirectory != null)) ==> descriptions.modules.nonEmpty
         val noDuplicateIds = moduleIds.size == moduleIds.distinct.size // TODO generator needs to create shared source dirs
@@ -67,7 +67,7 @@ class  BspResolverLogicProperties extends AssertionsForJUnit with Checkers {
   def `test moduleDescriptionForTarget succeeds for build targets with Scala`(): Unit = check(
     forAll(genBuildTargetWithScala) { target: BuildTarget =>
       forAll { (scalacOptions: Option[ScalacOptionsItem], depSourcesOpt: Option[DependencySourcesItem], sources: Seq[SourceDirectory], dependencyOutputs: List[File]) =>
-        val description = moduleDescriptionForTarget(target, scalacOptions, depSourcesOpt, sources, dependencyOutputs)
+        val description = moduleDescriptionForTarget(target, scalacOptions, depSourcesOpt, sources, dependencyOutputs, Seq.empty)
         val emptyForNOIDE = target.getTags.contains(BuildTargetTag.NO_IDE) ==> description.isEmpty :| "contained NO_IDE tag, but created anyway"
         val definedForBaseDir = target.getBaseDirectory != null ==> description.isDefined :| "base dir defined, but not created"
         val hasScalaModule = description.isDefined ==> description.get.moduleKindData.isInstanceOf[ScalaModule]
@@ -81,7 +81,7 @@ class  BspResolverLogicProperties extends AssertionsForJUnit with Checkers {
     forAll(genPath, Gen.listOf(genBuildTargetTag)) { (basePath: Path, tags: List[String]) =>
       forAll(Gen.listOf(genSourceDirectoryUnder(basePath))) { sourceRoots: List[SourceDirectory] =>
         forAll { (target: BuildTarget, moduleBase: Option[File], outputPath: Option[File], classpath: List[File], dependencySources: List[File]) =>
-          val description = createModuleDescriptionData(Seq(target), tags, moduleBase, outputPath, sourceRoots, classpath, dependencySources)
+          val description = createModuleDescriptionData(Seq(target), tags, moduleBase, outputPath, sourceRoots, classpath, dependencySources, Seq.empty)
 
           val p1 = (description.basePath == moduleBase) :| "base path should be set"
           val p2 = (tags.contains(BuildTargetTag.LIBRARY) || tags.contains(BuildTargetTag.APPLICATION)) ==>
