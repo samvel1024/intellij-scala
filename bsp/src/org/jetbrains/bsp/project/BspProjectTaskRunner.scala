@@ -4,9 +4,12 @@ import java.io.File
 import java.util
 
 import com.intellij.compiler.impl.CompilerUtil
+import com.intellij.execution.Executor
+import com.intellij.execution.executors.DefaultRunExecutor
+import com.intellij.execution.runners.{ExecutionEnvironment, ExecutionEnvironmentBuilder}
 import com.intellij.openapi.compiler.CompilerPaths
-import com.intellij.openapi.externalSystem.model.project.{ExternalSystemSourceType, ModuleData}
-import com.intellij.openapi.externalSystem.model.{DataNode, ProjectKeys}
+import com.intellij.openapi.externalSystem.model.ProjectKeys
+import com.intellij.openapi.externalSystem.model.project.ExternalSystemSourceType
 import com.intellij.openapi.externalSystem.service.project.ProjectDataManager
 import com.intellij.openapi.externalSystem.util.{ExternalSystemApiUtil => ES}
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -17,7 +20,7 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.task._
 import org.jetbrains.bsp.BSP
 import org.jetbrains.bsp.data.BspMetadata
-import org.jetbrains.bsp.settings.BspExecutionSettings
+import org.jetbrains.bsp.project.test.BspTestRunConfiguration
 import org.jetbrains.plugins.scala.extensions
 
 import scala.collection.JavaConverters._
@@ -33,7 +36,10 @@ class BspProjectTaskRunner extends ProjectTaskRunner {
         case _ : BspSyntheticModuleType => false
         case _ => ES.isExternalSystemAwareModule(BSP.ProjectSystemId, module)
       }
-    case _: ExecuteRunConfigurationTask => false // TODO support bsp run configs
+    case t: ExecuteRunConfigurationTask => t.getRunProfile match {
+      case _: BspTestRunConfiguration => true
+      case _ => false
+    }
     case _ => false
   }
 
