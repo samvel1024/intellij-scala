@@ -40,5 +40,5 @@ class BspTestRunConfiguration(val project: Project, val configurationFactory: Co
     override def createEditor(): JComponent = new JComponent {}
   }
 
-  override def getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState = new BspTestRunProfileState(getProject)
+  override def getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState = new BspTestRunProfileState(getProject, this, executor)
 }
