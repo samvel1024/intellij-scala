@@ -2,22 +2,19 @@ package org.jetbrains.bsp
 
 import java.io.File
 import java.util
-import java.util.{Collections, UUID}
 import java.util.concurrent.CompletableFuture
+import java.util.{Collections, UUID}
 
 import ch.epfl.scala.bsp4j
 import ch.epfl.scala.bsp4j._
 import com.intellij.mock.{MockApplication, MockLocalFileSystem}
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.externalSystem.model.ProjectSystemId
 import com.intellij.openapi.externalSystem.model.task.{ExternalSystemTaskId, ExternalSystemTaskNotificationEvent, ExternalSystemTaskNotificationListener, ExternalSystemTaskType}
-import com.intellij.openapi.project.{ProjectLocator, ProjectLocatorImpl}
-import com.intellij.openapi.vfs.{VirtualFile, VirtualFileManager}
 import com.intellij.openapi.vfs.impl.VirtualFileManagerImpl
+import com.intellij.openapi.vfs.{VirtualFile, VirtualFileManager}
 import org.jetbrains.bsp.project.resolver.BspProjectResolver
 import org.jetbrains.bsp.protocol.BspCommunication
-import org.jetbrains.bsp.protocol.BspNotifications.BspNotification
 import org.jetbrains.bsp.protocol.session.BspSession.{BspServer, BspSessionTask}
 import org.jetbrains.bsp.settings.BspExecutionSettings
 
@@ -149,11 +146,29 @@ object BSPCli extends App {
     server.buildTargetCompile(params)
   }
 
-  def testRequest(targets: BuildIds)(server: BspServer): CompletableFuture[TestResult] = {
+  def testAllRequest(targets: BuildIds)(server: BspServer): CompletableFuture[TestResult] = {
     val params = new bsp4j.TestParams(targets)
     params.setOriginId(UUID.randomUUID().toString)
     server.buildTargetTest(params)
   }
+
+
+  def testSingleRequest(targets: BuildIds, clasId: String, buildTargetUri: String)(server: BspServer): CompletableFuture[TestResult] = {
+    val params = new bsp4j.TestParams(targets)
+    params.setOriginId(UUID.randomUUID().toString)
+    params.setDataKind("scala-test")
+    params.setData({
+      val p = new ScalaTestParams
+      p.setTestClasses(List(
+        new ScalaTestClassesItem(
+          new BuildTargetIdentifier(buildTargetUri),
+          List(clasId).asJava)
+      ).asJava)
+      p
+    })
+    server.buildTargetTest(params)
+  }
+
 
   def testClasses(targets: BuildIds)(server: BspServer): CompletableFuture[ScalaTestClassesResult] = {
     val params = new bsp4j.ScalaTestClassesParams(targets)
@@ -162,20 +177,26 @@ object BSPCli extends App {
   }
 
   private def repl(): Unit = {
+    val exit = "exit[ \t]*".r
+    val compile = "compile[ \t]*".r
+    val getScalTestClasses = "getScalaTestClasses[ \t]*".r
+    val runAllTests = "runAllTests[ \t]*".r
+    val runTestClass = "runTestClass[ \t]+([^\\s\\\\]+)[ \t]+([^\\s\\\\]+)[ \t]*".r
+
     while (running) {
       print(Console.GREEN + ">>> " + Console.RESET)
-      val line = StdIn.readLine()
-      line match {
-        case "exit" =>
+      StdIn.readLine() match {
+        case exit() =>
           bspComm.closeSession()
           running = false
-        case "compile" => bspReq(compileRequest(targetIds.asJava))
-        case "test" => bspReq(testRequest(targetIds.asJava))
-        case "scalaTestClasses" => bspReq(testClasses(targetIds.asJava))
+        case compile() => bspReq(compileRequest(targetIds.asJava))
+        case getScalTestClasses() => bspReq(testClasses(targetIds.asJava))
+        case runAllTests() => bspReq(testAllRequest(targetIds.asJava))
+        case runTestClass(className, targetUri) => bspReq(testSingleRequest(targetIds.asJava, className, targetUri))
         case _ => println("Illegal command")
       }
     }
-    // There are non daemon threads, need to exit explicitly to stop them
+    // There are non daemon threads, need to explicitly stop them
     System.exit(0)
   }
 }

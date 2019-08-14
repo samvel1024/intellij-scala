@@ -8,7 +8,7 @@ import java.util.Optional
 import com.intellij.openapi.externalSystem.model.project.{AbstractExternalEntityData, ModuleData}
 import com.intellij.openapi.externalSystem.model.{DataNode, Key, ProjectKeys}
 import com.intellij.openapi.externalSystem.service.project.ProjectDataManager
-import com.intellij.openapi.module.Module
+import com.intellij.openapi.module.{Module, ModuleManager}
 import com.intellij.openapi.project.Project
 import com.intellij.serialization.PropertyMapping
 import org.jetbrains.annotations.NotNull
@@ -78,6 +78,11 @@ object BspMetadata {
     } yield metadata.getData
   }
 
+  def getPerModule(proj: Project): Seq[(Module, BspMetadata)] = {
+    ModuleManager.getInstance(proj).getModules.toList
+      .flatMap(m => get(proj, m).map((m, _)))
+  }
 
-}
+
+  }
 
