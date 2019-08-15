@@ -15,6 +15,8 @@ import org.jetbrains.annotations.NotNull
 import org.jetbrains.bsp.BSP
 import org.jetbrains.bsp.data.BspEntityData._
 
+import scala.collection.JavaConverters._
+
 abstract class BspEntityData extends AbstractExternalEntityData(BSP.ProjectSystemId) with Product {
 
   // need to manually specify equals/hashCode here because it is not generated for case classes inheriting from
@@ -61,6 +63,8 @@ case class BspMetadata @PropertyMapping(Array("targetIds", "scalaTestClasses"))(
                                                                                  @NotNull testClasses: util.List[String])
 object BspMetadata {
 
+  type ScalaTestClass = (URI, String)
+
   import com.intellij.openapi.externalSystem.util.{ExternalSystemApiUtil => ES}
 
   val Key: Key[BspMetadata] = datakey(classOf[BspMetadata])
@@ -78,11 +82,14 @@ object BspMetadata {
     } yield metadata.getData
   }
 
-  def getPerModule(proj: Project): Seq[(Module, BspMetadata)] = {
+  def findScalaTestClasses(proj: Project): Seq[ScalaTestClass] = {
     ModuleManager.getInstance(proj).getModules.toList
-      .flatMap(m => get(proj, m).map((m, _)))
+      .flatMap(get(proj, _))
+      .flatMap(m => m.targetIds.asScala
+        .take(1)
+        .flatMap(x => m.testClasses.asScala.map((x, _))))
   }
 
 
-  }
+}
 
