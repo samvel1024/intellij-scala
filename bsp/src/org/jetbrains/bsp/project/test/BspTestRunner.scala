@@ -20,7 +20,7 @@ import com.intellij.openapi.project.Project
 import jetbrains.buildServer.messages.serviceMessages._
 import org.jetbrains.bsp.data.BspMetadata
 import org.jetbrains.bsp.protocol.BspCommunicationComponent
-import org.jetbrains.bsp.protocol.BspNotifications.{BspNotification, TaskFinish, TaskStart}
+import org.jetbrains.bsp.protocol.BspNotifications.{BspNotification, LogMessage, TaskFinish, TaskStart}
 import org.jetbrains.bsp.protocol.session.BspSession.BspServer
 
 import scala.collection.JavaConverters._
@@ -110,12 +110,14 @@ class BspTestRunner(
 
   class BspTestSession {
     val startTime: mutable.Map[String, Long] = mutable.Map()
+    var testingStarted = false;
   }
 
-  // TODO handle standard output of test cases
   private def onBspNotification(proc: ProcessHandler, session: BspTestSession)(n: BspNotification): Unit = {
     implicit val pr = proc
     n match {
+      case LogMessage(params) => // TODO associate log messages with the running test correctly
+        printProc(new Message(params.getMessage + System.lineSeparator(), "Normal", null))
       case TaskStart(params) => extractNestedMessage(params) match {
         case t: TestTask =>
           printProc(new ServiceMsg("enteredTheMatrix"))
